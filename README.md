@@ -32,6 +32,22 @@ go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --db demo
 go run ./cmd/ch_watch watch --root ./demo/ch --db demo --format PrettyCompact
 ```
 
+## Сборка и установка
+
+Локальная сборка binary:
+
+```sh
+make build
+```
+
+Установка в `GOBIN`:
+
+```sh
+make install
+```
+
+Подробности: `docs/INSTALL.md`
+
 ## Полезные flags
 
 - `--root`: root directory для watch, по умолчанию `./ch`
@@ -52,4 +68,5 @@ go test ./...
 ## Demo Data
 
 - guide для ручных smoke tests: `demo/README.md`
+- сборка и install: `docs/INSTALL.md`
 - implementation brief первой сессии: `docs/NEXT_SESSION_TASK.md`
