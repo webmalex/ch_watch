@@ -1,22 +1,22 @@
 # ch_watch
 
-Native Go watcher for SQL debug workflows.
+Нативный Go watcher для SQL debug workflows.
 
-Current status: this repo contains the implementation brief and demo data for the first coding session.
+Текущий статус: в этом repo лежат implementation brief и demo data для первой coding session.
 
-Planned goal:
-- watch a `ch/` tree recursively without `watchexec` or polling in the main path;
-- react only to debug SQL files matching `**/_*.sql`;
+Планируемая цель:
+- рекурсивно watch дерево `ch/` без `watchexec` или polling в main path;
+- реагировать только на SQL files matching `**/*.sql`;
 - deduplicate noisy filesystem events;
-- run only the changed SQL file and stream the result to the console;
-- stay heavily covered by tests;
-- keep `make` as a thin launcher for long commands only.
+- запускать только измененный SQL file и stream результат в console;
+- оставаться хорошо covered tests;
+- keep `make` as thin launcher только для длинных команд.
 
-Start here:
+Старт отсюда:
 - implementation brief: `docs/NEXT_SESSION_TASK.md`
-- demo files for manual smoke tests: `demo/ch/`
+- demo files для ручных smoke tests: `demo/ch/`
 
-Important note:
-- the implementation should be Go-native and event-driven;
-- use a native Go watcher library with OS backends (`inotify` on Linux, native backend on macOS), not `watchexec`;
-- do not depend on shell redirection inside the core runner.
+Важное примечание:
+- implementation должна быть Go-native и event-driven;
+- используй нативную Go watcher library с OS backends (`inotify` на Linux, native backend на macOS), а не `watchexec`;
+- не завязывай core runner на shell redirection.
