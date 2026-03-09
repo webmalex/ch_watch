@@ -1,22 +1,55 @@
 # ch_watch
 
-Нативный Go watcher для SQL debug workflows.
+Нативный Go watcher для SQL debug workflows с event-driven rerun только измененного файла.
 
-Текущий статус: в этом repo лежат implementation brief и demo data для первой coding session.
+## Что умеет
 
-Планируемая цель:
-- рекурсивно watch дерево `ch/` без `watchexec` или polling в main path;
-- реагировать только на SQL files matching `**/*.sql`;
+- рекурсивно watch дерево `ch/`;
+- реагировать только на `.sql` files внутри выбранного root;
 - deduplicate noisy filesystem events;
-- запускать только измененный SQL file и stream результат в console;
-- оставаться хорошо covered tests;
-- keep `make` as thin launcher только для длинных команд.
+- queue изменения, пока текущий SQL file еще выполняется;
+- запускать SQL через `clickhouse-client` по `stdin`, без shell redirection;
+- работать в `--dry-run` mode для smoke tests без ClickHouse.
 
-Старт отсюда:
-- implementation brief: `docs/NEXT_SESSION_TASK.md`
-- demo files для ручных smoke tests: `demo/ch/`
+## Быстрый старт
 
-Важное примечание:
-- implementation должна быть Go-native и event-driven;
-- используй нативную Go watcher library с OS backends (`inotify` на Linux, native backend на macOS), а не `watchexec`;
-- не завязывай core runner на shell redirection.
+Dry run одного файла:
+
+```sh
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dry-run
+```
+
+Watch demo tree в dry run:
+
+```sh
+go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
+```
+
+Реальный запуск через ClickHouse:
+
+```sh
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --db demo
+go run ./cmd/ch_watch watch --root ./demo/ch --db demo --format PrettyCompact
+```
+
+## Полезные flags
+
+- `--root`: root directory для watch, по умолчанию `./ch`
+- `--db`: имя ClickHouse database; обязателен без `--dry-run`
+- `--client`: путь к `clickhouse-client`, по умолчанию `clickhouse-client`
+- `--format`: output format для `clickhouse-client`, по умолчанию `PrettyCompact`
+- `--debounce`: окно batch dedupe, по умолчанию `75ms`
+- `--suppress`: окно suppression для повторных fingerprints, по умолчанию `250ms`
+- `--print-events`: печатать normalized watcher events
+- `--dry-run`: не выполнять SQL, а только печатать `RUN`/`OK`
+
+## Тесты
+
+```sh
+go test ./...
+```
+
+## Demo Data
+
+- guide для ручных smoke tests: `demo/README.md`
+- implementation brief первой сессии: `docs/NEXT_SESSION_TASK.md`

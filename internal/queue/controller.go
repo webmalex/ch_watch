@@ -15,6 +15,7 @@ type ControllerConfig struct {
 	Debounce time.Duration
 	Suppress time.Duration
 	Now      func() time.Time
+	Request  model.RunRequest
 }
 
 type Controller struct {
@@ -85,7 +86,9 @@ func (c *Controller) Run(ctx context.Context) error {
 		running = true
 		c.reporter.Run(next)
 		go func(path string) {
-			result := c.runner.Run(ctx, model.RunRequest{Path: path})
+			request := c.config.Request
+			request.Path = path
+			result := c.runner.Run(ctx, request)
 			c.runDoneCh <- result
 		}(next)
 	}

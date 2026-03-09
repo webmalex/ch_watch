@@ -91,7 +91,7 @@ func (r *Recursive) handleEvent(event fsnotify.Event, onEvent func(Event)) error
 	if !IsSQLFile(path) {
 		return nil
 	}
-	if !strings.HasPrefix(path, r.root) {
+	if !IsWithinRoot(r.root, path) {
 		return nil
 	}
 	if event.Op&(fsnotify.Create|fsnotify.Write|fsnotify.Chmod|fsnotify.Rename) == 0 {

@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"ch_watch/internal/app"
@@ -13,7 +14,8 @@ import (
 
 func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer) error {
 	if len(args) == 0 {
-		return usageError(stderr)
+		writeUsage(stderr)
+		return errors.New("missing command")
 	}
 
 	switch args[0] {
@@ -30,8 +32,10 @@ func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer)
 		}
 		return app.RunOnce(ctx, cfg, stdout, stderr)
 	case "help", "-h", "--help":
-		return usageError(stderr)
+		writeUsage(stderr)
+		return nil
 	default:
+		writeUsage(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
 }
@@ -69,7 +73,11 @@ func parseRun(args []string) (app.RunConfig, error) {
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
 
-	if err := fs.Parse(args); err != nil {
+	reordered, err := reorderRunArgs(args)
+	if err != nil {
+		return app.RunConfig{}, err
+	}
+	if err := fs.Parse(reordered); err != nil {
 		return app.RunConfig{}, err
 	}
 	if fs.NArg() != 1 {
@@ -79,7 +87,33 @@ func parseRun(args []string) (app.RunConfig, error) {
 	return cfg, nil
 }
 
-func usageError(w io.Writer) error {
+func reorderRunArgs(args []string) ([]string, error) {
+	flagArgs := make([]string, 0, len(args))
+	positional := make([]string, 0, 1)
+
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--dry-run":
+			flagArgs = append(flagArgs, arg)
+		case arg == "--db" || arg == "--client" || arg == "--format":
+			if i+1 >= len(args) {
+				return nil, fmt.Errorf("flag needs value: %s", arg)
+			}
+			flagArgs = append(flagArgs, arg, args[i+1])
+			i++
+		case strings.HasPrefix(arg, "--db=") || strings.HasPrefix(arg, "--client=") || strings.HasPrefix(arg, "--format="):
+			flagArgs = append(flagArgs, arg)
+		case strings.HasPrefix(arg, "-"):
+			flagArgs = append(flagArgs, arg)
+		default:
+			positional = append(positional, arg)
+		}
+	}
+
+	return append(flagArgs, positional...), nil
+}
+
+func writeUsage(w io.Writer) {
 	_, _ = fmt.Fprintln(w, "usage: ch_watch <watch|run> [options]")
-	return errors.New("missing command")
 }

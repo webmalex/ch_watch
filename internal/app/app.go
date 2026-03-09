@@ -37,6 +37,16 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 	if err != nil {
 		return err
 	}
+	runCfg := normalizeRunConfig(RunConfig{
+		Database: cfg.Database,
+		Client:   cfg.Client,
+		Format:   cfg.Format,
+		DryRun:   cfg.DryRun,
+	})
+	run, err := buildRunner(runCfg, stdout, stderr)
+	if err != nil {
+		return err
+	}
 
 	reporter, err := report.NewConsoleReporter("", stdout, stderr)
 	if err != nil {
@@ -51,14 +61,15 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 	controller := queue.NewController(queue.ControllerConfig{
 		Debounce: cfg.Debounce,
 		Suppress: cfg.Suppress,
+		Request: model.RunRequest{
+			Database: cfg.Database,
+			Client:   runCfg.Client,
+			Format:   runCfg.Format,
+			DryRun:   cfg.DryRun,
+		},
 	}, func(path string, now time.Time) (model.FileFingerprint, bool, error) {
 		return watch.SnapshotFile(root, path, now)
-	}, newRunner(RunConfig{
-		Database: cfg.Database,
-		Client:   cfg.Client,
-		Format:   cfg.Format,
-		DryRun:   cfg.DryRun,
-	}, stdout, stderr), reporter)
+	}, run, reporter)
 
 	go func() {
 		_ = controller.Run(ctx)
@@ -83,6 +94,11 @@ func RunOnce(ctx context.Context, cfg RunConfig, stdout io.Writer, stderr io.Wri
 	} else if !ok {
 		return runner.ErrInvalidSQLPath
 	}
+	cfg = normalizeRunConfig(cfg)
+	run, err := buildRunner(cfg, stdout, stderr)
+	if err != nil {
+		return err
+	}
 
 	reporter, err := report.NewConsoleReporter("", stdout, stderr)
 	if err != nil {
@@ -98,14 +114,33 @@ func RunOnce(ctx context.Context, cfg RunConfig, stdout io.Writer, stderr io.Wri
 	}
 
 	reporter.Run(path)
-	result := newRunner(cfg, stdout, stderr).Run(ctx, request)
+	result := run.Run(ctx, request)
 	reporter.Result(result)
 	return result.Err
 }
 
-func newRunner(cfg RunConfig, stdout io.Writer, stderr io.Writer) runner.Runner {
+func buildRunner(cfg RunConfig, stdout io.Writer, stderr io.Writer) (runner.Runner, error) {
 	if cfg.DryRun {
-		return runner.NewDryRunner()
+		return runner.NewDryRunner(), nil
 	}
-	return runner.NewPendingRunner(stdout, stderr)
+	if cfg.Database == "" {
+		return nil, runner.ErrDatabaseRequired
+	}
+	if cfg.Client == "" {
+		cfg.Client = "clickhouse-client"
+	}
+	if cfg.Format == "" {
+		cfg.Format = "PrettyCompact"
+	}
+	return runner.NewClickHouseRunner(stdout, stderr), nil
+}
+
+func normalizeRunConfig(cfg RunConfig) RunConfig {
+	if cfg.Client == "" {
+		cfg.Client = "clickhouse-client"
+	}
+	if cfg.Format == "" {
+		cfg.Format = "PrettyCompact"
+	}
+	return cfg
 }

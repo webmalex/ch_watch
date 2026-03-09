@@ -1,12 +1,13 @@
 # Demo Data
 
-Эта директория содержит SQL files для ручных smoke tests после того, как Go watcher будет реализован.
+Эта директория содержит SQL files для ручных smoke tests уже реализованного watcher.
 
-Рекомендуемые проверки для будущей implementation:
+Рекомендуемые проверки:
 
-1. `run` на `demo/ch/dev/tmp.sql`
-2. `watch --dry-run` на `demo/ch/` и сохранить `demo/ch/dev/tmp.sql`
-3. сохранить `demo/ch/dev/query.sql` и убедиться, что rerun идет только для этого файла
+1. `go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dry-run`
+2. `go run ./cmd/ch_watch watch --root ./demo/ch --dry-run`, затем сохранить `demo/ch/dev/tmp.sql`
+3. в том же watch-сценарии сохранить `demo/ch/dev/query.sql` и убедиться, что rerun идет только для него
 4. сохранить `demo/ch/fm/task1.sql` и убедиться, что rerun идет только для него
+5. если доступен ClickHouse, повторить `run` и `watch` без `--dry-run`, добавив `--db <name>`
 
-Эти файлы специально очень маленькие, чтобы их было легко редактировать и наблюдать.
+Файлы специально маленькие, чтобы их было легко редактировать и наблюдать.

@@ -48,7 +48,7 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 	if result.Err != nil {
 		status = "FAIL"
 		writer = r.stderr
-		fmt.Fprintf(writer, "[%s] %s %s (%s, exit %d)\n", timestamp(), status, r.display(result.Path), result.Duration.Round(time.Millisecond), result.ExitCode)
+		fmt.Fprintf(writer, "[%s] %s %s (exit %d, %s)\n", timestamp(), status, r.display(result.Path), result.ExitCode, result.Duration.Round(time.Millisecond))
 		return
 	}
 	fmt.Fprintf(writer, "[%s] %s %s (%s)\n", timestamp(), status, r.display(result.Path), result.Duration.Round(time.Millisecond))

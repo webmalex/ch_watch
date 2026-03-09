@@ -26,6 +26,7 @@ func TestControllerDeduplicatesWithinBatch(t *testing.T) {
 	go func() { _ = controller.Run(ctx) }()
 	controller.Notify("a.sql")
 	controller.Notify("a.sql")
+	runner.WaitForStarts(t, 1, 2*time.Second)
 
 	waitCtx, waitCancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer waitCancel()
