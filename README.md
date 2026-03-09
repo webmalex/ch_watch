@@ -48,6 +48,22 @@ make install
 
 Подробности: `docs/INSTALL.md`
 
+## Проверка качества
+
+Быстрый набор проверок:
+
+```sh
+make check
+```
+
+Полный набор проверок:
+
+```sh
+make check-full
+```
+
+Подробности: `docs/QUALITY.md`
+
 ## Полезные flags
 
 - `--root`: root directory для watch, по умолчанию `./ch`
@@ -69,4 +85,5 @@ go test ./...
 
 - guide для ручных smoke tests: `demo/README.md`
 - сборка и install: `docs/INSTALL.md`
+- quality checks и linters: `docs/QUALITY.md`
 - implementation brief первой сессии: `docs/NEXT_SESSION_TASK.md`

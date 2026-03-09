@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -56,14 +57,14 @@ func TestWatchCommandWiresDryRun(t *testing.T) {
 	t.Parallel()
 
 	root := t.TempDir()
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
+	stdout := &lockedBuffer{}
+	stderr := &lockedBuffer{}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- Run(ctx, []string{"watch", "--root", root, "--dry-run"}, &stdout, &stderr)
+		errCh <- Run(ctx, []string{"watch", "--root", root, "--dry-run"}, stdout, stderr)
 	}()
 	time.Sleep(100 * time.Millisecond)
 
@@ -88,6 +89,29 @@ func TestWatchCommandWiresDryRun(t *testing.T) {
 	if stderr.Len() != 0 {
 		t.Fatalf("unexpected stderr: %q", stderr.String())
 	}
+}
+
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
+
+func (b *lockedBuffer) Len() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Len()
 }
 
 func writeSQLFile(t *testing.T, name string) string {
