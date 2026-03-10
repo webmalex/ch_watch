@@ -5,6 +5,14 @@
 - Go `1.23+`
 - для реального запуска SQL: `clickhouse-client` в `PATH` или путь через `--client`
 
+Для полного local workflow на macOS можно поставить инструменты через Homebrew:
+
+```sh
+brew install go pre-commit golangci-lint govulncheck
+```
+
+`pre-commit` уже нужен для hook workflow, а `golangci-lint` и `govulncheck` используются в расширенных quality checks.
+
 ## Локальная сборка
 
 Собрать binary в `./bin/ch_watch`:
@@ -54,6 +62,16 @@ go env GOPATH
 ```sh
 GOBIN="$(pwd)/bin" make install
 ```
+
+## Подключение git hooks
+
+После установки `pre-commit` можно сразу подключить hooks для этого repo:
+
+```sh
+make hooks-install
+```
+
+Эта команда ставит hook types `pre-commit` и `pre-push` и сразу загружает environments для конфигурации из `.pre-commit-config.yaml`.
 
 ## Обновление binary
 

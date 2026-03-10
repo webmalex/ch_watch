@@ -37,7 +37,7 @@ func NewConsoleReporter(base string, stdout io.Writer, stderr io.Writer) (*Conso
 func (r *ConsoleReporter) Run(path string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.stdout, "[%s] RUN %s\n", timestamp(), r.display(path))
+	_, _ = fmt.Fprintf(r.stdout, "[%s] RUN %s\n", timestamp(), r.display(path))
 }
 
 func (r *ConsoleReporter) Result(result model.RunResult) {
@@ -48,16 +48,16 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 	if result.Err != nil {
 		status = "FAIL"
 		writer = r.stderr
-		fmt.Fprintf(writer, "[%s] %s %s (exit %d, %s)\n", timestamp(), status, r.display(result.Path), result.ExitCode, result.Duration.Round(time.Millisecond))
+		_, _ = fmt.Fprintf(writer, "[%s] %s %s (exit %d, %s)\n", timestamp(), status, r.display(result.Path), result.ExitCode, result.Duration.Round(time.Millisecond))
 		return
 	}
-	fmt.Fprintf(writer, "[%s] %s %s (%s)\n", timestamp(), status, r.display(result.Path), result.Duration.Round(time.Millisecond))
+	_, _ = fmt.Fprintf(writer, "[%s] %s %s (%s)\n", timestamp(), status, r.display(result.Path), result.Duration.Round(time.Millisecond))
 }
 
 func (r *ConsoleReporter) Event(path string, op string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	fmt.Fprintf(r.stdout, "[%s] EVENT %s %s\n", timestamp(), op, r.display(path))
+	_, _ = fmt.Fprintf(r.stdout, "[%s] EVENT %s %s\n", timestamp(), op, r.display(path))
 }
 
 func (r *ConsoleReporter) display(path string) string {

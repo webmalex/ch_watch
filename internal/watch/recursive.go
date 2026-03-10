@@ -49,7 +49,9 @@ func (r *Recursive) Close() error {
 }
 
 func (r *Recursive) Run(ctx context.Context, onEvent func(Event)) error {
-	defer r.Close()
+	defer func() {
+		_ = r.Close()
+	}()
 
 	for {
 		select {

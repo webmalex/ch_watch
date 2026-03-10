@@ -5,7 +5,7 @@ OUTPUT := $(BIN_DIR)/$(BINARY)
 GO_PACKAGES := ./...
 GOFILES := $(shell find cmd internal -type f -name '*.go' -print)
 
-.PHONY: build install clean fmt fmt-check test test-race test-cover vet lint vuln smoke-run smoke-watch check check-full
+.PHONY: build install clean fmt fmt-check test test-race test-cover vet lint vuln smoke-run smoke-watch hooks-install hooks-update hooks-run hooks-run-push hooks-run-manual check check-full
 
 build:
 	mkdir -p $(BIN_DIR)
@@ -53,6 +53,21 @@ smoke-run:
 
 smoke-watch:
 	go run $(CMD) watch --root ./demo/ch --dry-run
+
+hooks-install:
+	pre-commit install --install-hooks -t pre-commit -t pre-push
+
+hooks-update:
+	pre-commit autoupdate
+
+hooks-run:
+	pre-commit run --all-files
+
+hooks-run-push:
+	pre-commit run --all-files --hook-stage pre-push
+
+hooks-run-manual:
+	pre-commit run --all-files --hook-stage manual
 
 check: fmt-check test vet build
 

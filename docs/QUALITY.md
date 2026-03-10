@@ -51,6 +51,78 @@ make check
 - `make vet`
 - `make build`
 
+## Установка внешних quality tools
+
+На macOS все дополнительные инструменты можно поставить одной командой:
+
+```sh
+brew install pre-commit golangci-lint govulncheck
+```
+
+Проверить версии:
+
+```sh
+pre-commit --version
+golangci-lint version
+govulncheck -version
+```
+
+## Pre-commit workflow
+
+`pre-commit --help` показывает, что для этого workflow нам важны команды `install`, `run`, `autoupdate`, `validate-config` и поддержка hook types `pre-commit` и `pre-push`.
+
+### Установка hooks
+
+```sh
+make hooks-install
+```
+
+Эквивалентная команда без `make`:
+
+```sh
+pre-commit install --install-hooks -t pre-commit -t pre-push
+```
+
+### Что запускается автоматически
+
+- `pre-commit`: базовые file checks и `make fmt-check`
+- `pre-push`: `make test`, `make vet`, `make lint`
+- `manual`: `make vuln`, `make test-race`, `make test-cover`, `make smoke-run`
+
+### Ручной запуск hooks
+
+Все hooks стадии `pre-commit`:
+
+```sh
+make hooks-run
+```
+
+Проверки стадии `pre-push`:
+
+```sh
+make hooks-run-push
+```
+
+Manual hooks:
+
+```sh
+make hooks-run-manual
+```
+
+### Валидация и обновление конфигурации hooks
+
+Проверить `.pre-commit-config.yaml`:
+
+```sh
+pre-commit validate-config
+```
+
+Обновить pinned hook revisions:
+
+```sh
+make hooks-update
+```
+
 ## Расширенные проверки
 
 ### Race detector
@@ -126,6 +198,7 @@ make smoke-watch
 ## Практический режим использования
 
 - перед commit: `make check`
+- для автоматизации локальных commits: `make hooks-install`
 - перед большим merge или release: `make check-full`
 - после изменений в watcher semantics: `make smoke-watch`
 - после изменений в runner: `make smoke-run` и реальный `run` с `--db`

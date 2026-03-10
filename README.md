@@ -48,6 +48,12 @@ make install
 
 Подробности: `docs/INSTALL.md`
 
+Для полного developer workflow на macOS:
+
+```sh
+brew install go pre-commit golangci-lint govulncheck
+```
+
 ## Проверка качества
 
 Быстрый набор проверок:
@@ -60,6 +66,12 @@ make check
 
 ```sh
 make check-full
+```
+
+Подключение git hooks:
+
+```sh
+make hooks-install
 ```
 
 Подробности: `docs/QUALITY.md`
@@ -86,4 +98,5 @@ go test ./...
 - guide для ручных smoke tests: `demo/README.md`
 - сборка и install: `docs/INSTALL.md`
 - quality checks и linters: `docs/QUALITY.md`
+- git hooks config: `.pre-commit-config.yaml`
 - implementation brief первой сессии: `docs/NEXT_SESSION_TASK.md`

@@ -1,0 +1,68 @@
+minimum_pre_commit_version: "4.0.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-yaml
+
+  - repo: local
+    hooks:
+      - id: go-fmt-check
+        name: gofmt check
+        entry: make fmt-check
+        language: system
+        pass_filenames: false
+        files: \.go$
+
+      - id: go-test
+        name: go test
+        entry: make test
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: go-vet
+        name: go vet
+        entry: make vet
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: golangci-lint
+        name: golangci-lint
+        entry: make lint
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: govulncheck
+        name: govulncheck
+        entry: make vuln
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: go-test-race
+        name: go test race
+        entry: make test-race
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: go-test-cover
+        name: go test cover
+        entry: make test-cover
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
+      - id: smoke-run
+        name: dry-run smoke test
+        entry: make smoke-run
+        language: system
+        pass_filenames: false
+        stages: [manual]
