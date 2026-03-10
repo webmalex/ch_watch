@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 )
 
 type Reporter interface {
+	System(label string, message string)
 	Run(path string)
 	Result(result model.RunResult)
 	Event(path string, op string)
@@ -20,10 +22,15 @@ type ConsoleReporter struct {
 	base   string
 	stdout io.Writer
 	stderr io.Writer
+	now    func() time.Time
 	mu     sync.Mutex
 }
 
 func NewConsoleReporter(base string, stdout io.Writer, stderr io.Writer) (*ConsoleReporter, error) {
+	return newConsoleReporter(base, stdout, stderr, time.Now)
+}
+
+func newConsoleReporter(base string, stdout io.Writer, stderr io.Writer, now func() time.Time) (*ConsoleReporter, error) {
 	if base == "" {
 		cwd, err := filepath.Abs(".")
 		if err != nil {
@@ -31,13 +38,23 @@ func NewConsoleReporter(base string, stdout io.Writer, stderr io.Writer) (*Conso
 		}
 		base = cwd
 	}
-	return &ConsoleReporter{base: base, stdout: stdout, stderr: stderr}, nil
+	if now == nil {
+		now = time.Now
+	}
+	return &ConsoleReporter{base: base, stdout: stdout, stderr: stderr, now: now}, nil
+}
+
+func (r *ConsoleReporter) System(label string, message string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	_, _ = fmt.Fprintf(r.stdout, "%s\n", colorize(systemHeaderStyle, separator(label)))
+	_, _ = fmt.Fprintf(r.stdout, "%s\n", colorize(systemTextStyle, fmt.Sprintf("[%s] %s", r.timestamp(), message)))
 }
 
 func (r *ConsoleReporter) Run(path string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	_, _ = fmt.Fprintf(r.stdout, "[%s] RUN %s\n", timestamp(), r.display(path))
+	_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(runStyle, "🚀 RUN", r.display(path)))
 }
 
 func (r *ConsoleReporter) Result(result model.RunResult) {
@@ -45,19 +62,21 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 	defer r.mu.Unlock()
 	status := "OK"
 	writer := r.stdout
+	style := okStyle
+	details := fmt.Sprintf("%s (%s)", r.display(result.Path), result.Duration.Round(time.Millisecond))
 	if result.Err != nil {
 		status = "FAIL"
 		writer = r.stderr
-		_, _ = fmt.Fprintf(writer, "[%s] %s %s (exit %d, %s)\n", timestamp(), status, r.display(result.Path), result.ExitCode, result.Duration.Round(time.Millisecond))
-		return
+		style = failStyle
+		details = fmt.Sprintf("%s (exit %d, %s)", r.display(result.Path), result.ExitCode, result.Duration.Round(time.Millisecond))
 	}
-	_, _ = fmt.Fprintf(writer, "[%s] %s %s (%s)\n", timestamp(), status, r.display(result.Path), result.Duration.Round(time.Millisecond))
+	_, _ = fmt.Fprintf(writer, "%s\n", r.line(style, emojiFor(status)+" "+status, details))
 }
 
 func (r *ConsoleReporter) Event(path string, op string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	_, _ = fmt.Fprintf(r.stdout, "[%s] EVENT %s %s\n", timestamp(), op, r.display(path))
+	_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(eventStyle, "🔎 EVENT", op+" "+r.display(path)))
 }
 
 func (r *ConsoleReporter) display(path string) string {
@@ -68,6 +87,40 @@ func (r *ConsoleReporter) display(path string) string {
 	return filepath.ToSlash(path)
 }
 
-func timestamp() string {
-	return time.Now().Format("15:04:05")
+func (r *ConsoleReporter) line(style string, label string, details string) string {
+	return fmt.Sprintf("%s %s %s", colorize(timestampStyle, "["+r.timestamp()+"]"), colorize(style, label), details)
 }
+
+func (r *ConsoleReporter) timestamp() string {
+	return r.now().Format("15:04:05")
+}
+
+func separator(label string) string {
+	header := "=== " + label + " "
+	if len(header) >= 72 {
+		return header
+	}
+	return header + strings.Repeat("=", 72-len(header))
+}
+
+func emojiFor(status string) string {
+	if status == "FAIL" {
+		return "❌"
+	}
+	return "✅"
+}
+
+func colorize(style string, text string) string {
+	return style + text + ansiReset
+}
+
+const (
+	ansiReset         = "\033[0m"
+	timestampStyle    = "\033[90m"
+	runStyle          = "\033[1;96m"
+	okStyle           = "\033[1;92m"
+	failStyle         = "\033[1;91m"
+	eventStyle        = "\033[1;93m"
+	systemHeaderStyle = "\033[1;97;44m"
+	systemTextStyle   = "\033[1;36m"
+)

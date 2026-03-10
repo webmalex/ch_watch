@@ -16,6 +16,8 @@ func NewMemoryReporter() *MemoryReporter {
 	return &MemoryReporter{}
 }
 
+func (r *MemoryReporter) System(string, string) {}
+
 func (r *MemoryReporter) Run(path string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
