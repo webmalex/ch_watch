@@ -32,6 +32,9 @@ func TestConsoleReporterUsesColorAndEmojiForRunLifecycle(t *testing.T) {
 	if !strings.Contains(plain, "🚀 RUN demo/ch/dev/tmp.sql") {
 		t.Fatalf("expected colored run label: %q", output)
 	}
+	if !strings.Contains(output, "\x1b[1;32mdemo/ch/dev/tmp.sql\x1b[0m") {
+		t.Fatalf("expected green file path in output: %q", output)
+	}
 	if !strings.Contains(plain, "✅ OK demo/ch/dev/tmp.sql (138ms)") {
 		t.Fatalf("expected colored success label: %q", output)
 	}
@@ -95,6 +98,7 @@ func stripANSI(input string) string {
 		"\x1b[1;96m", "",
 		"\x1b[1;92m", "",
 		"\x1b[1;91m", "",
+		"\x1b[1;32m", "",
 		"\x1b[1;97;44m", "",
 		"\x1b[1;36m", "",
 	)

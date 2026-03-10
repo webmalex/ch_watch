@@ -54,7 +54,7 @@ func (r *ConsoleReporter) System(label string, message string) {
 func (r *ConsoleReporter) Run(path string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(runStyle, "🚀 RUN", r.display(path)))
+	_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(runStyle, "🚀 RUN", r.pathText(r.display(path))))
 }
 
 func (r *ConsoleReporter) Result(result model.RunResult) {
@@ -63,12 +63,12 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 	status := "OK"
 	writer := r.stdout
 	style := okStyle
-	details := fmt.Sprintf("%s (%s)", r.display(result.Path), result.Duration.Round(time.Millisecond))
+	details := fmt.Sprintf("%s (%s)", r.pathText(r.display(result.Path)), result.Duration.Round(time.Millisecond))
 	if result.Err != nil {
 		status = "FAIL"
 		writer = r.stderr
 		style = failStyle
-		details = fmt.Sprintf("%s (exit %d, %s)", r.display(result.Path), result.ExitCode, result.Duration.Round(time.Millisecond))
+		details = fmt.Sprintf("%s (exit %d, %s)", r.pathText(r.display(result.Path)), result.ExitCode, result.Duration.Round(time.Millisecond))
 	}
 	_, _ = fmt.Fprintf(writer, "%s\n", r.line(style, emojiFor(status)+" "+status, details))
 }
@@ -76,7 +76,7 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 func (r *ConsoleReporter) Event(path string, op string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(eventStyle, "🔎 EVENT", op+" "+r.display(path)))
+	_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(eventStyle, "🔎 EVENT", op+" "+r.pathText(r.display(path))))
 }
 
 func (r *ConsoleReporter) display(path string) string {
@@ -89,6 +89,10 @@ func (r *ConsoleReporter) display(path string) string {
 
 func (r *ConsoleReporter) line(style string, label string, details string) string {
 	return fmt.Sprintf("%s %s %s", colorize(timestampStyle, "["+r.timestamp()+"]"), colorize(style, label), details)
+}
+
+func (r *ConsoleReporter) pathText(path string) string {
+	return colorize(pathStyle, path)
 }
 
 func (r *ConsoleReporter) timestamp() string {
@@ -121,6 +125,7 @@ const (
 	okStyle           = "\033[1;92m"
 	failStyle         = "\033[1;91m"
 	eventStyle        = "\033[1;93m"
+	pathStyle         = "\033[1;32m"
 	systemHeaderStyle = "\033[1;97;44m"
 	systemTextStyle   = "\033[1;36m"
 )
