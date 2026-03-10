@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"ch_watch/internal/model"
@@ -52,6 +53,8 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 	if err != nil {
 		return err
 	}
+	reporter.System("👀 WATCH", watchSystemMessage(root, runCfg, cfg.PrintEvents))
+	defer reporter.System("🛑 STOP", "watch loop stopped")
 
 	watcher, err := watch.NewRecursive(root)
 	if err != nil {
@@ -104,6 +107,7 @@ func RunOnce(ctx context.Context, cfg RunConfig, stdout io.Writer, stderr io.Wri
 	if err != nil {
 		return err
 	}
+	reporter.System("⚙️ RUNNER", runSystemMessage(path, cfg))
 
 	request := model.RunRequest{
 		Path:     path,
@@ -143,4 +147,55 @@ func normalizeRunConfig(cfg RunConfig) RunConfig {
 		cfg.Format = "PrettyCompact"
 	}
 	return cfg
+}
+
+func watchSystemMessage(root string, cfg RunConfig, printEvents bool) string {
+	parts := []string{
+		"root=" + displayPath(root),
+		"mode=" + modeLabel(cfg.DryRun),
+		"client=" + cfg.Client,
+		"format=" + cfg.Format,
+	}
+	if cfg.Database != "" {
+		parts = append(parts, "db="+cfg.Database)
+	}
+	if printEvents {
+		parts = append(parts, "events=on")
+	}
+	return strings.Join(parts, " | ")
+}
+
+func runSystemMessage(path string, cfg RunConfig) string {
+	parts := []string{
+		"path=" + displayPath(path),
+		"mode=" + modeLabel(cfg.DryRun),
+		"client=" + cfg.Client,
+		"format=" + cfg.Format,
+	}
+	if cfg.Database != "" {
+		parts = append(parts, "db="+cfg.Database)
+	}
+	return strings.Join(parts, " | ")
+}
+
+func modeLabel(dryRun bool) string {
+	if dryRun {
+		return "dry-run"
+	}
+	return "live"
+}
+
+func displayPath(path string) string {
+	cwd, err := filepath.Abs(".")
+	if err != nil {
+		return filepath.ToSlash(path)
+	}
+	rel, err := filepath.Rel(cwd, path)
+	if err != nil || rel == "" || rel == "." {
+		return filepath.ToSlash(path)
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return filepath.ToSlash(path)
+	}
+	return filepath.ToSlash(rel)
 }

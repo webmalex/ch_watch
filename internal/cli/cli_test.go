@@ -22,6 +22,9 @@ func TestRunCommandWiresDryRun(t *testing.T) {
 	if err := Run(context.Background(), []string{"run", "--dry-run", path}, &stdout, &stderr); err != nil {
 		t.Fatalf("run: %v", err)
 	}
+	if !strings.Contains(stdout.String(), "RUNNER") {
+		t.Fatalf("expected runner banner in stdout: %q", stdout.String())
+	}
 	if !strings.Contains(stdout.String(), "RUN") || !strings.Contains(stdout.String(), "OK") {
 		t.Fatalf("unexpected stdout: %q", stdout.String())
 	}
@@ -47,6 +50,9 @@ func TestRunCommandAllowsFlagsAfterPath(t *testing.T) {
 
 	if err := Run(context.Background(), []string{"run", path, "--dry-run"}, &stdout, io.Discard); err != nil {
 		t.Fatalf("run: %v", err)
+	}
+	if !strings.Contains(stdout.String(), "RUNNER") {
+		t.Fatalf("expected runner banner in stdout: %q", stdout.String())
 	}
 	if !strings.Contains(stdout.String(), "RUN") {
 		t.Fatalf("unexpected stdout: %q", stdout.String())
@@ -85,6 +91,9 @@ func TestWatchCommandWiresDryRun(t *testing.T) {
 	cancel()
 	if err := <-errCh; err != nil {
 		t.Fatalf("watch: %v", err)
+	}
+	if !strings.Contains(stdout.String(), "WATCH") || !strings.Contains(stdout.String(), "STOP") {
+		t.Fatalf("expected watch lifecycle banners in stdout: %q", stdout.String())
 	}
 	if stderr.Len() != 0 {
 		t.Fatalf("unexpected stderr: %q", stderr.String())
