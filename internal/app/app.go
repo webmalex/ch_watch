@@ -127,11 +127,8 @@ func buildRunner(cfg RunConfig, stdout io.Writer, stderr io.Writer) (runner.Runn
 	if cfg.DryRun {
 		return runner.NewDryRunner(), nil
 	}
-	if cfg.Database == "" {
-		return nil, runner.ErrDatabaseRequired
-	}
 	if cfg.Client == "" {
-		cfg.Client = "clickhouse-client"
+		cfg.Client = "clickhouse"
 	}
 	if cfg.Format == "" {
 		cfg.Format = "PrettyCompact"
@@ -141,7 +138,7 @@ func buildRunner(cfg RunConfig, stdout io.Writer, stderr io.Writer) (runner.Runn
 
 func normalizeRunConfig(cfg RunConfig) RunConfig {
 	if cfg.Client == "" {
-		cfg.Client = "clickhouse-client"
+		cfg.Client = "clickhouse"
 	}
 	if cfg.Format == "" {
 		cfg.Format = "PrettyCompact"
