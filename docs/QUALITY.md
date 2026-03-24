@@ -201,4 +201,4 @@ make smoke-watch
 - для автоматизации локальных commits: `make hooks-install`
 - перед большим merge или release: `make check-full`
 - после изменений в watcher semantics: `make smoke-watch`
-- после изменений в runner: `make smoke-run` и реальный `run` с `--db`
+- после изменений в runner: `make smoke-run`, реальный `run --db <name>` (режим `clickhouse client`) и реальный `run` без `--db` (режим `clickhouse local`)
