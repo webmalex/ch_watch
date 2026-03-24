@@ -59,6 +59,23 @@ func TestRunCommandAllowsFlagsAfterPath(t *testing.T) {
 	}
 }
 
+func TestParseRunDefaultsUseClickHouseBinary(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQLFile(t, "query.sql")
+	cfg, err := parseRun([]string{path})
+	if err != nil {
+		t.Fatalf("parse run: %v", err)
+	}
+
+	if cfg.Client != "clickhouse" {
+		t.Fatalf("unexpected client default: %q", cfg.Client)
+	}
+	if cfg.Format != "PrettyCompact" {
+		t.Fatalf("unexpected format default: %q", cfg.Format)
+	}
+}
+
 func TestWatchCommandWiresDryRun(t *testing.T) {
 	t.Parallel()
 

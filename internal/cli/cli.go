@@ -47,7 +47,7 @@ func parseWatch(args []string) (app.WatchConfig, error) {
 	cfg := app.WatchConfig{}
 	fs.StringVar(&cfg.Root, "root", "./ch", "watch root")
 	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database")
-	fs.StringVar(&cfg.Client, "client", "clickhouse-client", "client path")
+	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.DurationVar(&cfg.Debounce, "debounce", 75*time.Millisecond, "debounce window")
 	fs.DurationVar(&cfg.Suppress, "suppress", 250*time.Millisecond, "suppression window")
@@ -69,7 +69,7 @@ func parseRun(args []string) (app.RunConfig, error) {
 
 	cfg := app.RunConfig{}
 	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database")
-	fs.StringVar(&cfg.Client, "client", "clickhouse-client", "client path")
+	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
 
