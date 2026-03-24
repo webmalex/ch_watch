@@ -8,7 +8,7 @@
 - реагировать только на `.sql` files внутри выбранного root;
 - deduplicate noisy filesystem events;
 - queue изменения, пока текущий SQL file еще выполняется;
-- запускать SQL через `clickhouse-client` по `stdin`, без shell redirection;
+- запускать SQL через `clickhouse` по `stdin`, автоматически выбирая `client` или `local` режим;
 - работать в `--dry-run` mode для smoke tests без ClickHouse.
 
 ## Быстрый старт
@@ -30,6 +30,7 @@ go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
 ```sh
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --db demo
 go run ./cmd/ch_watch watch --root ./demo/ch --db demo --format PrettyCompact
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 ```
 
 ## Сборка и установка
@@ -79,9 +80,9 @@ make hooks-install
 ## Полезные flags
 
 - `--root`: root directory для watch, по умолчанию `./ch`
-- `--db`: имя ClickHouse database; обязателен без `--dry-run`
-- `--client`: путь к `clickhouse-client`, по умолчанию `clickhouse-client`
-- `--format`: output format для `clickhouse-client`, по умолчанию `PrettyCompact`
+- `--db`: имя ClickHouse database; если задан, используется `clickhouse client --database <db>`
+- `--client`: путь к binary `clickhouse`, по умолчанию `clickhouse`
+- `--format`: output format для `clickhouse client/local`, по умолчанию `PrettyCompact`
 - `--debounce`: окно batch dedupe, по умолчанию `75ms`
 - `--suppress`: окно suppression для повторных fingerprints, по умолчанию `250ms`
 - `--print-events`: печатать normalized watcher events

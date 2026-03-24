@@ -3,7 +3,7 @@
 ## Требования
 
 - Go `1.23+`
-- для реального запуска SQL: `clickhouse-client` в `PATH` или путь через `--client`
+- для реального запуска SQL: `clickhouse` в `PATH` или путь через `--client`
 
 Для полного local workflow на macOS можно поставить инструменты через Homebrew:
 
