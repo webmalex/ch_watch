@@ -100,4 +100,4 @@ go test ./...
 - сборка и install: `docs/INSTALL.md`
 - quality checks и linters: `docs/QUALITY.md`
 - git hooks config: `.pre-commit-config.yaml`
-- implementation brief первой сессии: `docs/NEXT_SESSION_TASK.md`
+- project motivation and design intent: `docs/PROJECT_RATIONALE.md`
