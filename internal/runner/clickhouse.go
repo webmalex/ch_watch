@@ -43,13 +43,6 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 		StartedAt: started,
 	}
 
-	if request.Database == "" {
-		result.Err = ErrDatabaseRequired
-		result.ExitCode = 1
-		result.Duration = time.Since(started)
-		return result
-	}
-
 	sql, err := r.readFile(request.Path)
 	if err != nil {
 		result.Err = err
@@ -58,13 +51,18 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 		return result
 	}
 
-	args := []string{"-d", request.Database}
+	args := make([]string, 0, 5)
+	if request.Database != "" {
+		args = append(args, "client", "--database", request.Database)
+	} else {
+		args = append(args, "local")
+	}
 	if request.Format != "" {
-		args = append(args, "-f", request.Format)
+		args = append(args, "--format", request.Format)
 	}
 	client := request.Client
 	if client == "" {
-		client = "clickhouse-client"
+		client = "clickhouse"
 	}
 
 	err = r.exec(ctx, client, args, bytes.NewReader(sql), r.stdout, r.stderr)

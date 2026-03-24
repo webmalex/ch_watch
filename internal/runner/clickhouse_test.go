@@ -11,7 +11,7 @@ import (
 	"ch_watch/internal/model"
 )
 
-func TestClickHouseRunnerPassesSQLViaStdin(t *testing.T) {
+func TestClickHouseRunnerUsesClientModeWhenDatabaseProvided(t *testing.T) {
 	t.Parallel()
 
 	path := writeSQL(t, "SELECT 42;\n")
@@ -38,7 +38,6 @@ func TestClickHouseRunnerPassesSQLViaStdin(t *testing.T) {
 	result := runner.Run(context.Background(), model.RunRequest{
 		Path:     path,
 		Database: "demo",
-		Client:   "clickhouse-client",
 		Format:   "PrettyCompact",
 	})
 
@@ -48,10 +47,10 @@ func TestClickHouseRunnerPassesSQLViaStdin(t *testing.T) {
 	if result.ExitCode != 0 {
 		t.Fatalf("unexpected exit code: %d", result.ExitCode)
 	}
-	if gotName != "clickhouse-client" {
+	if gotName != "clickhouse" {
 		t.Fatalf("unexpected client: %q", gotName)
 	}
-	if len(gotArgs) != 4 || gotArgs[0] != "-d" || gotArgs[1] != "demo" || gotArgs[2] != "-f" || gotArgs[3] != "PrettyCompact" {
+	if len(gotArgs) != 5 || gotArgs[0] != "client" || gotArgs[1] != "--database" || gotArgs[2] != "demo" || gotArgs[3] != "--format" || gotArgs[4] != "PrettyCompact" {
 		t.Fatalf("unexpected args: %#v", gotArgs)
 	}
 	if gotSQL != "SELECT 42;\n" {
@@ -62,6 +61,48 @@ func TestClickHouseRunnerPassesSQLViaStdin(t *testing.T) {
 	}
 	if stderr.String() != "warn output\n" {
 		t.Fatalf("unexpected stderr: %q", stderr.String())
+	}
+}
+
+func TestClickHouseRunnerUsesLocalModeWhenDatabaseOmitted(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 7;\n")
+	var gotName string
+	var gotArgs []string
+	var gotSQL string
+
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, name string, args []string, stdin io.Reader, _ io.Writer, _ io.Writer) error {
+		body, err := io.ReadAll(stdin)
+		if err != nil {
+			return err
+		}
+		gotName = name
+		gotArgs = append([]string(nil), args...)
+		gotSQL = string(body)
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:   path,
+		Format: "PrettyCompact",
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	if result.ExitCode != 0 {
+		t.Fatalf("unexpected exit code: %d", result.ExitCode)
+	}
+	if gotName != "clickhouse" {
+		t.Fatalf("unexpected client: %q", gotName)
+	}
+	if len(gotArgs) != 3 || gotArgs[0] != "local" || gotArgs[1] != "--format" || gotArgs[2] != "PrettyCompact" {
+		t.Fatalf("unexpected args: %#v", gotArgs)
+	}
+	if gotSQL != "SELECT 7;\n" {
+		t.Fatalf("unexpected sql: %q", gotSQL)
 	}
 }
 
@@ -83,22 +124,6 @@ func TestClickHouseRunnerReturnsExitCode(t *testing.T) {
 		t.Fatal("expected an error")
 	}
 	if result.ExitCode != 62 {
-		t.Fatalf("unexpected exit code: %d", result.ExitCode)
-	}
-}
-
-func TestClickHouseRunnerRequiresDatabase(t *testing.T) {
-	t.Parallel()
-
-	path := writeSQL(t, "SELECT 1;\n")
-	runner := NewClickHouseRunner(io.Discard, io.Discard)
-
-	result := runner.Run(context.Background(), model.RunRequest{Path: path})
-
-	if result.Err != ErrDatabaseRequired {
-		t.Fatalf("unexpected error: %v", result.Err)
-	}
-	if result.ExitCode != 1 {
 		t.Fatalf("unexpected exit code: %d", result.ExitCode)
 	}
 }

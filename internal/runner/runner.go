@@ -9,8 +9,7 @@ import (
 )
 
 var (
-	ErrDatabaseRequired = errors.New("db is required unless --dry-run is enabled")
-	ErrInvalidSQLPath   = errors.New("path is not a runnable SQL file")
+	ErrInvalidSQLPath = errors.New("path is not a runnable SQL file")
 )
 
 type Runner interface {
