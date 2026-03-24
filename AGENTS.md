@@ -1,0 +1,79 @@
+# PROJECT KNOWLEDGE BASE
+
+**Generated:** 2026-03-24
+**Branch:** master
+**State:** working-tree snapshot
+
+## OVERVIEW
+Go CLI watcher for SQL debug workflows. Core value: rerun only the changed SQL file with debounced filesystem events and execute it through `clickhouse local` or `clickhouse client`.
+
+## STRUCTURE
+```text
+cmd/ch_watch/        # binary entry and signal handling
+internal/app/        # orchestration and runtime defaults
+internal/cli/        # command parsing and flag handling
+internal/watch/      # recursive fsnotify watcher and SQL filtering
+internal/queue/      # debounce, suppression, sequential execution
+internal/runner/     # ClickHouse execution modes
+internal/report/     # colored console output
+docs/                # install, quality, rationale
+demo/                # smoke-test SQL fixtures
+```
+
+## WHERE TO LOOK
+| Task | Location | Notes |
+|------|----------|-------|
+| Start from entrypoint | `cmd/ch_watch/main.go` | `main()` only wires signal handling into CLI |
+| Understand top-level flow | `internal/app/app.go` | `RunWatch()` and `RunOnce()` coordinate everything |
+| Change watcher semantics | `internal/watch/AGENTS.md` | Highest risk area for noisy events and path filtering |
+| Change debounce / rerun policy | `internal/queue/AGENTS.md` | Owns batching, suppression, and run ordering |
+| Change ClickHouse execution | `internal/runner/clickhouse.go` | `--db` => `client`; no `--db` => `local` |
+| Change console output | `internal/report/report.go` | ANSI colors, emoji labels, system banners |
+| Update docs | `docs/AGENTS.md` | Keep docs aligned with verified behavior |
+
+## CODE MAP
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| `main` | function | `cmd/ch_watch/main.go` | signal-aware binary entry |
+| `RunWatch` | function | `internal/app/app.go` | watcher + queue + runner orchestration |
+| `RunOnce` | function | `internal/app/app.go` | one-shot SQL execution path |
+| `(*Controller).Run` | method | `internal/queue/controller.go` | debounce, suppression, single-run scheduling |
+| `(*Recursive).Run` | method | `internal/watch/recursive.go` | recursive fsnotify event loop |
+| `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local` |
+| `ConsoleReporter` | type | `internal/report/report.go` | colored lifecycle and system output |
+
+## CONVENTIONS
+- Tests start with `t.Parallel()` unless true serialization is required.
+- Prefer injected dependencies (`exec`, clocks, fake runners, in-memory reporters) over real side effects in tests.
+- Use `make check` before commit and `make check-full` before merge/release.
+- Docs are written in Russian; CLI names, flags, file globs, and technical terms stay in English.
+- Default binary name is `clickhouse`; do not drift back to the legacy `clickhouse-client` default.
+- `--db` changes execution mode, not just a connection parameter: with DB uses `client`, without DB uses `local`.
+
+## ANTI-PATTERNS (THIS PROJECT)
+- Do not move core behavior back into `make` or shell wrappers.
+- Do not make polling the main watcher path.
+- Do not treat temporary or non-SQL files as runnable.
+- Do not change queue/watch semantics without matching tests.
+- Do not document workflows that have not been run locally.
+- Do not resurrect session-planning docs as source-of-truth documentation.
+
+## UNIQUE STYLES
+- Lifecycle output is intentionally colored and emoji-based.
+- Demo fixtures live in `demo/ch/` and double as smoke-test inputs.
+- Root docs point to child `AGENTS.md` only for domains with real local complexity.
+
+## COMMANDS
+```bash
+make check
+make check-full
+make smoke-run
+make smoke-watch
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
+go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
+make hooks-install
+```
+
+## NOTES
+- `internal/queue` and `internal/watch` are the main correctness hotspots.
+- `docs/PROJECT_RATIONALE.md` replaces the old session brief as the durable explanation of why this tool exists.
