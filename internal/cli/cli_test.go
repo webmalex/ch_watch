@@ -140,6 +140,81 @@ func (b *lockedBuffer) Len() int {
 	return b.buf.Len()
 }
 
+func TestHelpShowsCommands(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	err := Run(context.Background(), []string{"--help"}, io.Discard, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	output := buf.String()
+	for _, want := range []string{"ch_watch", "Commands:", "watch", "run", "version"} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("help missing %q: %q", want, output)
+		}
+	}
+}
+
+func TestWatchHelpShowsFlags(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	err := Run(context.Background(), []string{"watch", "--help"}, io.Discard, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	output := buf.String()
+	for _, want := range []string{"Usage:", "-root", "-db", "-format", "-dump", "-dry-run", "-debounce", "-suppress"} {
+		if !strings.Contains(output, want) {
+			t.Fatalf("watch help missing %q: %q", want, output)
+		}
+	}
+}
+
+func TestRunHelpShowsPath(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	err := Run(context.Background(), []string{"run", "--help"}, io.Discard, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "<path>") {
+		t.Fatalf("run help missing <path>: %q", output)
+	}
+	if !strings.Contains(output, "-db") {
+		t.Fatalf("run help missing --db: %q", output)
+	}
+}
+
+func TestUnknownCommandShowsHelp(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	err := Run(context.Background(), []string{"foo"}, io.Discard, &buf)
+	if err == nil {
+		t.Fatal("expected error for unknown command")
+	}
+	if !strings.Contains(buf.String(), "Commands:") {
+		t.Fatalf("unknown command should show help: %q", buf.String())
+	}
+}
+
+func TestWatchHelpAlias(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	err := Run(context.Background(), []string{"watch", "-h"}, io.Discard, &buf)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "Usage:") {
+		t.Fatalf("-h should show help: %q", buf.String())
+	}
+}
+
 func writeSQLFile(t *testing.T, name string) string {
 	t.Helper()
 	dir := t.TempDir()

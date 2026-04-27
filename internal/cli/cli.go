@@ -15,18 +15,28 @@ import (
 
 func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer) error {
 	if len(args) == 0 {
-		writeUsage(stderr)
+		writeHelp(stderr)
 		return errors.New("missing command")
 	}
 
 	switch args[0] {
 	case "watch":
+		if isHelp(args[1:]) {
+			fs, _ := newWatchFlags()
+			writeCommandHelp(stderr, "watch", "watch a directory and rerun SQL on changes", fs)
+			return nil
+		}
 		cfg, err := parseWatch(args[1:])
 		if err != nil {
 			return err
 		}
 		return app.RunWatch(ctx, cfg, stdout, stderr)
 	case "run":
+		if isHelp(args[1:]) {
+			fs, _ := newRunFlags()
+			writeCommandHelp(stderr, "run", "execute a single SQL file", fs)
+			return nil
+		}
 		cfg, err := parseRun(args[1:])
 		if err != nil {
 			return err
@@ -36,28 +46,33 @@ func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer)
 		_, _ = fmt.Fprintf(stdout, "ch_watch %s\n", version.Version)
 		return nil
 	case "help", "-h", "--help":
-		writeUsage(stderr)
+		writeHelp(stderr)
 		return nil
 	default:
-		writeUsage(stderr)
+		writeHelp(stderr)
 		return fmt.Errorf("unknown command %q", args[0])
 	}
 }
 
-func parseWatch(args []string) (app.WatchConfig, error) {
+func newWatchFlags() (*flag.FlagSet, *app.WatchConfig) {
 	fs := flag.NewFlagSet("watch", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	cfg := app.WatchConfig{}
-	fs.StringVar(&cfg.Root, "root", "./ch", "watch root")
-	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database")
+	cfg := &app.WatchConfig{}
+	fs.StringVar(&cfg.Root, "root", "./ch", "watch root directory")
+	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database (client mode)")
 	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.DurationVar(&cfg.Debounce, "debounce", 75*time.Millisecond, "debounce window")
 	fs.DurationVar(&cfg.Suppress, "suppress", 250*time.Millisecond, "suppression window")
 	fs.BoolVar(&cfg.PrintEvents, "print-events", false, "print normalized events")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
-	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to .txt file next to the SQL file")
+	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to .txt next to SQL file")
+	return fs, cfg
+}
+
+func parseWatch(args []string) (app.WatchConfig, error) {
+	fs, cfg := newWatchFlags()
 
 	if err := fs.Parse(args); err != nil {
 		return app.WatchConfig{}, err
@@ -65,19 +80,24 @@ func parseWatch(args []string) (app.WatchConfig, error) {
 	if fs.NArg() != 0 {
 		return app.WatchConfig{}, errors.New("watch does not accept positional arguments")
 	}
-	return cfg, nil
+	return *cfg, nil
 }
 
-func parseRun(args []string) (app.RunConfig, error) {
+func newRunFlags() (*flag.FlagSet, *app.RunConfig) {
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	cfg := app.RunConfig{}
-	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database")
+	cfg := &app.RunConfig{}
+	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database (client mode)")
 	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
-	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to .txt file next to the SQL file")
+	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to .txt next to SQL file")
+	return fs, cfg
+}
+
+func parseRun(args []string) (app.RunConfig, error) {
+	fs, cfg := newRunFlags()
 
 	reordered, err := reorderRunArgs(args)
 	if err != nil {
@@ -90,7 +110,7 @@ func parseRun(args []string) (app.RunConfig, error) {
 		return app.RunConfig{}, errors.New("run requires exactly one SQL file path")
 	}
 	cfg.Path = fs.Arg(0)
-	return cfg, nil
+	return *cfg, nil
 }
 
 func reorderRunArgs(args []string) ([]string, error) {
@@ -120,7 +140,37 @@ func reorderRunArgs(args []string) ([]string, error) {
 	return append(flagArgs, positional...), nil
 }
 
-func writeUsage(w io.Writer) {
-	_, _ = fmt.Fprintf(w, "ch_watch %s\n", version.Version)
-	_, _ = fmt.Fprintln(w, "usage: ch_watch <watch|run|version> [options]")
+func isHelp(args []string) bool {
+	if len(args) == 0 {
+		return false
+	}
+	return args[0] == "-h" || args[0] == "--help" || args[0] == "help"
+}
+
+func writeHelp(w io.Writer) {
+	_, _ = fmt.Fprintf(w, "ch_watch %s\n\n", version.Version)
+	_, _ = fmt.Fprintln(w, "SQL file watcher for ClickHouse debug workflows.")
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, "Commands:")
+	_, _ = fmt.Fprintln(w, "  watch    watch a directory and rerun SQL on changes")
+	_, _ = fmt.Fprintln(w, "  run      execute a single SQL file")
+	_, _ = fmt.Fprintln(w, "  version  print version")
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, "Global flags:")
+	_, _ = fmt.Fprintln(w, "  -h, --help       show help")
+	_, _ = fmt.Fprintln(w, "  -v, --version    print version")
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w, "Use \"ch_watch <command> --help\" for more information about a command.")
+}
+
+func writeCommandHelp(w io.Writer, name string, desc string, fs *flag.FlagSet) {
+	_, _ = fmt.Fprintf(w, "Usage: ch_watch %s [options]", name)
+	if name == "run" {
+		_, _ = fmt.Fprint(w, " <path>")
+	}
+	_, _ = fmt.Fprintln(w)
+	_, _ = fmt.Fprintf(w, "\n%s\n\n", desc)
+	_, _ = fmt.Fprintln(w, "Options:")
+	fs.SetOutput(w)
+	fs.PrintDefaults()
 }
