@@ -85,9 +85,9 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 	err = r.exec(ctx, client, args, bytes.NewReader(sql), stdoutWriter, r.stderr)
 
 	if dumpFile != nil {
-		dumpFile.Close()
+		_ = dumpFile.Close()
 		if err != nil {
-			os.Remove(dumpPath)
+			_ = os.Remove(dumpPath)
 			dumpPath = ""
 		}
 	}
