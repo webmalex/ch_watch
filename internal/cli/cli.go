@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"ch_watch/internal/app"
+	"ch_watch/internal/version"
 )
 
 func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer) error {
@@ -31,6 +32,9 @@ func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer)
 			return err
 		}
 		return app.RunOnce(ctx, cfg, stdout, stderr)
+	case "version", "-v", "--version":
+		_, _ = fmt.Fprintf(stdout, "ch_watch %s\n", version.Version)
+		return nil
 	case "help", "-h", "--help":
 		writeUsage(stderr)
 		return nil
@@ -117,5 +121,6 @@ func reorderRunArgs(args []string) ([]string, error) {
 }
 
 func writeUsage(w io.Writer) {
-	_, _ = fmt.Fprintln(w, "usage: ch_watch <watch|run> [options]")
+	_, _ = fmt.Fprintf(w, "ch_watch %s\n", version.Version)
+	_, _ = fmt.Fprintln(w, "usage: ch_watch <watch|run|version> [options]")
 }

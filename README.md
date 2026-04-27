@@ -90,6 +90,14 @@ make hooks-install
 - `--dry-run`: не выполнять SQL, а только печатать `RUN`/`OK`
 - `--dump`: сохранять результат запроса в `.txt` файл рядом с SQL файлом (одинаковое имя, расширение `.txt`)
 
+## Версия
+
+```sh
+ch_watch version
+ch_watch --version
+ch_watch -v
+```
+
 ## Тесты
 
 ```sh

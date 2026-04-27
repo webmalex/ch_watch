@@ -4,15 +4,17 @@ BIN_DIR := ./bin
 OUTPUT := $(BIN_DIR)/$(BINARY)
 GO_PACKAGES := ./...
 GOFILES := $(shell find cmd internal -type f -name '*.go' -print)
+VERSION := $(file < VERSION)
+LDFLAGS := -X ch_watch/internal/version.Version=$(VERSION)
 
 .PHONY: build install clean fmt fmt-check test test-race test-cover vet lint vuln smoke-run smoke-watch hooks-install hooks-update hooks-run hooks-run-push hooks-run-manual check check-full
 
 build:
 	mkdir -p $(BIN_DIR)
-	go build -o $(OUTPUT) $(CMD)
+	go build -ldflags "$(LDFLAGS)" -o $(OUTPUT) $(CMD)
 
 install:
-	go install $(CMD)
+	go install -ldflags "$(LDFLAGS)" $(CMD)
 
 clean:
 	rm -rf $(BIN_DIR) coverage.out

@@ -16,6 +16,7 @@ internal/watch/      # recursive fsnotify watcher and SQL filtering
 internal/queue/      # debounce, suppression, sequential execution
 internal/runner/     # ClickHouse execution modes
 internal/report/     # colored console output
+internal/version/    # version string, set via -ldflags at build time
 docs/                # install, quality, rationale
 demo/                # smoke-test SQL fixtures
 ```
@@ -42,6 +43,7 @@ demo/                # smoke-test SQL fixtures
 | `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; tees stdout to dump file when `--dump` |
 | `DumpFilePath` | function | `internal/runner/clickhouse.go` | derives `.txt` dump path from `.sql` path |
 | `ConsoleReporter` | type | `internal/report/report.go` | colored lifecycle and system output |
+| `Version` | var | `internal/version/version.go` | version string from VERSION file, set via `-ldflags` at build time |
 
 ## CONVENTIONS
 - Tests start with `t.Parallel()` unless true serialization is required.
@@ -51,6 +53,7 @@ demo/                # smoke-test SQL fixtures
 - Docs are written in Russian; CLI names, flags, file globs, and technical terms stay in English.
 - Default binary name is `clickhouse`; do not drift back to the legacy `clickhouse-client` default.
 - `--db` changes execution mode, not just a connection parameter: with DB uses `client`, without DB uses `local`.
+- Version is stored in the `VERSION` file at project root; bump it there before release. `make build`/`make install` inject it via `-ldflags`.
 - **After every completed task**: update documentation (README, docs/, CODE MAP, COMMANDS in AGENTS.md if flags/structure changed) and make a git commit. Mandatory — do not wait for explicit instruction.
 
 ## ANTI-PATTERNS (THIS PROJECT)
@@ -75,6 +78,7 @@ make smoke-watch
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
 go run ./cmd/ch_watch watch --root ./demo/ch --dry-run --dump
+./bin/ch_watch version
 make hooks-install
 ```
 
