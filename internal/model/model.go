@@ -33,6 +33,7 @@ type RunResult struct {
 	Err       error
 	DryRun    bool
 	DumpPath  string
+	Stderr    string
 }
 
 func (r RunResult) Success() bool {

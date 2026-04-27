@@ -43,6 +43,7 @@ demo/                # smoke-test SQL fixtures
 | `(*Recursive).Run` | method | `internal/watch/recursive.go` | recursive fsnotify event loop |
 | `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; tees stdout to dump file when `--dump` |
 | `DumpFilePath` | function | `internal/runner/clickhouse.go` | derives `.txt` dump path from `.sql` path |
+| `DecodeExitCode` | function | `internal/runner/clickhouse.go` | decodes exit code into signal name when 128+ |
 | `ConsoleReporter` | type | `internal/report/report.go` | colored lifecycle and system output |
 | `Version` | var | `internal/version/version.go` | version string from VERSION file, set via `-ldflags` at build time |
 

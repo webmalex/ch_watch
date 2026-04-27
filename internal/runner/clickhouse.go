@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"ch_watch/internal/model"
@@ -69,6 +70,8 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 	}
 
 	stdoutWriter := r.stdout
+	var stderrBuf bytes.Buffer
+	stderrWriter := io.MultiWriter(r.stderr, &stderrBuf)
 	var dumpFile *os.File
 	dumpPath := ""
 
@@ -83,11 +86,12 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 		}
 	}
 
-	err = r.exec(ctx, client, args, bytes.NewReader(sql), stdoutWriter, r.stderr)
+	err = r.exec(ctx, client, args, bytes.NewReader(sql), stdoutWriter, stderrWriter)
 
 	result.Err = err
 	result.ExitCode = exitCode(err)
 	result.Duration = time.Since(started)
+	result.Stderr = strings.TrimSpace(stderrBuf.String())
 
 	if dumpFile != nil {
 		if err == nil {
@@ -129,4 +133,12 @@ func exitCode(err error) int {
 		return coded.ExitCode()
 	}
 	return 1
+}
+
+func DecodeExitCode(code int) string {
+	if code >= 128 {
+		sig := syscall.Signal(code - 128)
+		return fmt.Sprintf("exit %d (signal: %s)", code, sig)
+	}
+	return fmt.Sprintf("exit %d", code)
 }

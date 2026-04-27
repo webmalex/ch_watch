@@ -129,6 +129,51 @@ func TestClickHouseRunnerReturnsExitCode(t *testing.T) {
 	}
 }
 
+func TestClickHouseRunnerCapturesStderr(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	var stderrBuf bytes.Buffer
+	runner := NewClickHouseRunner(io.Discard, &stderrBuf)
+	runner.exec = func(_ context.Context, _ string, _ []string, _ io.Reader, _ io.Writer, stderr io.Writer) error {
+		_, _ = io.WriteString(stderr, "Error: memory limit\n")
+		return fakeExitError(144)
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{Path: path})
+
+	if result.Stderr != "Error: memory limit" {
+		t.Fatalf("unexpected captured stderr: %q", result.Stderr)
+	}
+	if stderrBuf.String() != "Error: memory limit\n" {
+		t.Fatalf("unexpected stderr output: %q", stderrBuf.String())
+	}
+	if result.ExitCode != 144 {
+		t.Fatalf("unexpected exit code: %d", result.ExitCode)
+	}
+}
+
+func TestDecodeExitCodeSignal(t *testing.T) {
+	t.Parallel()
+
+	got := DecodeExitCode(144)
+	if !strings.Contains(got, "signal") {
+		t.Fatalf("expected signal in %q", got)
+	}
+}
+
+func TestDecodeExitCodeApplication(t *testing.T) {
+	t.Parallel()
+
+	got := DecodeExitCode(62)
+	if strings.Contains(got, "signal") {
+		t.Fatalf("unexpected signal in %q", got)
+	}
+	if !strings.Contains(got, "62") {
+		t.Fatalf("expected 62 in %q", got)
+	}
+}
+
 func TestDryRunnerBypassesSubprocessExecution(t *testing.T) {
 	t.Parallel()
 

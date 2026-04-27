@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"ch_watch/internal/model"
+	"ch_watch/internal/runner"
 )
 
 type Reporter interface {
@@ -68,9 +69,12 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 		status = "FAIL"
 		writer = r.stderr
 		style = failStyle
-		details = fmt.Sprintf("%s (exit %d, %s)", r.pathText(r.display(result.Path)), result.ExitCode, result.Duration.Round(time.Millisecond))
+		details = fmt.Sprintf("%s (%s, %s)", r.pathText(r.display(result.Path)), runner.DecodeExitCode(result.ExitCode), result.Duration.Round(time.Millisecond))
 	}
 	_, _ = fmt.Fprintf(writer, "%s\n", r.line(style, emojiFor(status)+" "+status, details))
+	if result.Err != nil && result.Stderr != "" {
+		_, _ = fmt.Fprintf(r.stderr, "%s\n", r.line(stderrStyle, "⚠️ STDERR", result.Stderr))
+	}
 	if result.DumpPath != "" {
 		_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(dumpStyle, "💾 DUMP", r.pathText(r.display(result.DumpPath))))
 	}
@@ -132,4 +136,5 @@ const (
 	systemHeaderStyle = "\033[1;97;44m"
 	systemTextStyle   = "\033[1;36m"
 	dumpStyle         = "\033[1;35m"
+	stderrStyle       = "\033[1;33m"
 )
