@@ -39,7 +39,8 @@ demo/                # smoke-test SQL fixtures
 | `RunOnce` | function | `internal/app/app.go` | one-shot SQL execution path |
 | `(*Controller).Run` | method | `internal/queue/controller.go` | debounce, suppression, single-run scheduling |
 | `(*Recursive).Run` | method | `internal/watch/recursive.go` | recursive fsnotify event loop |
-| `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local` |
+| `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; tees stdout to dump file when `--dump` |
+| `DumpFilePath` | function | `internal/runner/clickhouse.go` | derives `.txt` dump path from `.sql` path |
 | `ConsoleReporter` | type | `internal/report/report.go` | colored lifecycle and system output |
 
 ## CONVENTIONS
@@ -49,6 +50,7 @@ demo/                # smoke-test SQL fixtures
 - Docs are written in Russian; CLI names, flags, file globs, and technical terms stay in English.
 - Default binary name is `clickhouse`; do not drift back to the legacy `clickhouse-client` default.
 - `--db` changes execution mode, not just a connection parameter: with DB uses `client`, without DB uses `local`.
+- **After every completed task**: update documentation (README, docs/, CODE MAP, COMMANDS in AGENTS.md if flags/structure changed) and make a git commit. Mandatory — do not wait for explicit instruction.
 
 ## ANTI-PATTERNS (THIS PROJECT)
 - Do not move core behavior back into `make` or shell wrappers.
@@ -71,6 +73,7 @@ make smoke-run
 make smoke-watch
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
+go run ./cmd/ch_watch watch --root ./demo/ch --dry-run --dump
 make hooks-install
 ```
 

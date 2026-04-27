@@ -53,6 +53,7 @@ func parseWatch(args []string) (app.WatchConfig, error) {
 	fs.DurationVar(&cfg.Suppress, "suppress", 250*time.Millisecond, "suppression window")
 	fs.BoolVar(&cfg.PrintEvents, "print-events", false, "print normalized events")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
+	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to .txt file next to the SQL file")
 
 	if err := fs.Parse(args); err != nil {
 		return app.WatchConfig{}, err
@@ -72,6 +73,7 @@ func parseRun(args []string) (app.RunConfig, error) {
 	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
+	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to .txt file next to the SQL file")
 
 	reordered, err := reorderRunArgs(args)
 	if err != nil {

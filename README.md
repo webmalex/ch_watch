@@ -9,7 +9,8 @@
 - deduplicate noisy filesystem events;
 - queue изменения, пока текущий SQL file еще выполняется;
 - запускать SQL через `clickhouse` по `stdin`, автоматически выбирая `client` или `local` режим;
-- работать в `--dry-run` mode для smoke tests без ClickHouse.
+- работать в `--dry-run` mode для smoke tests без ClickHouse;
+- дампить результат запроса в `.txt` файл рядом с SQL файлом (флаг `--dump`).
 
 ## Быстрый старт
 
@@ -87,6 +88,7 @@ make hooks-install
 - `--suppress`: окно suppression для повторных fingerprints, по умолчанию `250ms`
 - `--print-events`: печатать normalized watcher events
 - `--dry-run`: не выполнять SQL, а только печатать `RUN`/`OK`
+- `--dump`: сохранять результат запроса в `.txt` файл рядом с SQL файлом (одинаковое имя, расширение `.txt`)
 
 ## Тесты
 

@@ -71,6 +71,9 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 		details = fmt.Sprintf("%s (exit %d, %s)", r.pathText(r.display(result.Path)), result.ExitCode, result.Duration.Round(time.Millisecond))
 	}
 	_, _ = fmt.Fprintf(writer, "%s\n", r.line(style, emojiFor(status)+" "+status, details))
+	if result.DumpPath != "" {
+		_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(dumpStyle, "💾 DUMP", r.pathText(r.display(result.DumpPath))))
+	}
 }
 
 func (r *ConsoleReporter) Event(path string, op string) {
@@ -128,4 +131,5 @@ const (
 	pathStyle         = "\033[1;32m"
 	systemHeaderStyle = "\033[1;97;44m"
 	systemTextStyle   = "\033[1;36m"
+	dumpStyle         = "\033[1;35m"
 )

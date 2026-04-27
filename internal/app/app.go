@@ -23,6 +23,7 @@ type WatchConfig struct {
 	Suppress    time.Duration
 	PrintEvents bool
 	DryRun      bool
+	DumpFile    bool
 }
 
 type RunConfig struct {
@@ -31,6 +32,7 @@ type RunConfig struct {
 	Client   string
 	Format   string
 	DryRun   bool
+	DumpFile bool
 }
 
 func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.Writer) error {
@@ -43,6 +45,7 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 		Client:   cfg.Client,
 		Format:   cfg.Format,
 		DryRun:   cfg.DryRun,
+		DumpFile: cfg.DumpFile,
 	})
 	run, err := buildRunner(runCfg, stdout, stderr)
 	if err != nil {
@@ -69,6 +72,7 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 			Client:   runCfg.Client,
 			Format:   runCfg.Format,
 			DryRun:   cfg.DryRun,
+			DumpFile: cfg.DumpFile,
 		},
 	}, func(path string, now time.Time) (model.FileFingerprint, bool, error) {
 		return watch.SnapshotFile(root, path, now)
@@ -115,6 +119,7 @@ func RunOnce(ctx context.Context, cfg RunConfig, stdout io.Writer, stderr io.Wri
 		Client:   cfg.Client,
 		Format:   cfg.Format,
 		DryRun:   cfg.DryRun,
+		DumpFile: cfg.DumpFile,
 	}
 
 	reporter.Run(path)

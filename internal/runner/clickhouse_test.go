@@ -141,6 +141,119 @@ func TestDryRunnerBypassesSubprocessExecution(t *testing.T) {
 	}
 }
 
+func TestDumpFileWritesResultNextToSQL(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	var stdout bytes.Buffer
+
+	runner := NewClickHouseRunner(&stdout, io.Discard)
+	runner.exec = func(_ context.Context, _ string, _ []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		_, _ = io.WriteString(stdout, "result data\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		Format:   "PrettyCompact",
+		DumpFile: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	if result.DumpPath == "" {
+		t.Fatal("expected dump path")
+	}
+
+	want := DumpFilePath(path)
+	if result.DumpPath != want {
+		t.Fatalf("dump path: got %q, want %q", result.DumpPath, want)
+	}
+	if stdout.String() != "result data\n" {
+		t.Fatalf("unexpected stdout: %q", stdout.String())
+	}
+
+	data, err := os.ReadFile(result.DumpPath)
+	if err != nil {
+		t.Fatalf("read dump: %v", err)
+	}
+	if string(data) != "result data\n" {
+		t.Fatalf("unexpected dump content: %q", string(data))
+	}
+}
+
+func TestDumpFileRemovedOnFailure(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(context.Context, string, []string, io.Reader, io.Writer, io.Writer) error {
+		return fakeExitError(1)
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		Format:   "PrettyCompact",
+		DumpFile: true,
+	})
+
+	if result.Err == nil {
+		t.Fatal("expected error")
+	}
+	if result.DumpPath != "" {
+		t.Fatalf("expected empty dump path on failure, got %q", result.DumpPath)
+	}
+
+	dumpPath := DumpFilePath(path)
+	if _, err := os.Stat(dumpPath); !os.IsNotExist(err) {
+		t.Fatal("dump file should not exist after failure")
+	}
+}
+
+func TestDumpFileNotCreatedWhenDisabled(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, _ []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		_, _ = io.WriteString(stdout, "ok\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:   path,
+		Format: "PrettyCompact",
+	})
+
+	if result.DumpPath != "" {
+		t.Fatalf("expected empty dump path when dump disabled, got %q", result.DumpPath)
+	}
+
+	dumpPath := DumpFilePath(path)
+	if _, err := os.Stat(dumpPath); !os.IsNotExist(err) {
+		t.Fatal("dump file should not exist when dump disabled")
+	}
+}
+
+func TestDumpFilePath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct{ in, want string }{
+		{"/tmp/query.sql", "/tmp/query.txt"},
+		{"/home/user/ch/dev/tmp.sql", "/home/user/ch/dev/tmp.txt"},
+		{"query.sql", "query.txt"},
+	}
+	for _, tt := range tests {
+		got := DumpFilePath(tt.in)
+		if got != tt.want {
+			t.Errorf("DumpFilePath(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
 type fakeExitError int
 
 func (e fakeExitError) Error() string {

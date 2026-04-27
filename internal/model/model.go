@@ -22,6 +22,7 @@ type RunRequest struct {
 	Client   string
 	Format   string
 	DryRun   bool
+	DumpFile bool
 }
 
 type RunResult struct {
@@ -31,6 +32,7 @@ type RunResult struct {
 	ExitCode  int
 	Err       error
 	DryRun    bool
+	DumpPath  string
 }
 
 func (r RunResult) Success() bool {

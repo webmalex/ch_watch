@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"ch_watch/internal/model"
@@ -65,11 +67,41 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 		client = "clickhouse"
 	}
 
-	err = r.exec(ctx, client, args, bytes.NewReader(sql), r.stdout, r.stderr)
+	stdoutWriter := r.stdout
+	var dumpFile *os.File
+	dumpPath := ""
+
+	if request.DumpFile {
+		dumpPath = DumpFilePath(request.Path)
+		f, fErr := os.Create(dumpPath)
+		if fErr != nil {
+			dumpPath = ""
+		} else {
+			dumpFile = f
+			stdoutWriter = io.MultiWriter(r.stdout, f)
+		}
+	}
+
+	err = r.exec(ctx, client, args, bytes.NewReader(sql), stdoutWriter, r.stderr)
+
+	if dumpFile != nil {
+		dumpFile.Close()
+		if err != nil {
+			os.Remove(dumpPath)
+			dumpPath = ""
+		}
+	}
+
 	result.Err = err
 	result.ExitCode = exitCode(err)
 	result.Duration = time.Since(started)
+	result.DumpPath = dumpPath
 	return result
+}
+
+func DumpFilePath(sqlPath string) string {
+	ext := filepath.Ext(sqlPath)
+	return strings.TrimSuffix(sqlPath, ext) + ".txt"
 }
 
 func defaultExec(ctx context.Context, name string, args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
