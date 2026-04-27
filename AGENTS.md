@@ -37,7 +37,8 @@ demo/                # smoke-test SQL fixtures
 |--------|------|----------|------|
 | `main` | function | `cmd/ch_watch/main.go` | signal-aware binary entry |
 | `RunWatch` | function | `internal/app/app.go` | watcher + queue + runner orchestration |
-| `RunOnce` | function | `internal/app/app.go` | one-shot SQL execution path |
+| `RunOnce` | function | `internal/app/app.go` | one-shot SQL execution; file or directory |
+| `runDir` | function | `internal/app/app.go` | walk directory and execute all .sql files |
 | `(*Controller).Run` | method | `internal/queue/controller.go` | debounce, suppression, single-run scheduling |
 | `(*Recursive).Run` | method | `internal/watch/recursive.go` | recursive fsnotify event loop |
 | `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; tees stdout to dump file when `--dump` |
@@ -54,6 +55,7 @@ demo/                # smoke-test SQL fixtures
 - Default binary name is `clickhouse`; do not drift back to the legacy `clickhouse-client` default.
 - `--db` changes execution mode, not just a connection parameter: with DB uses `client`, without DB uses `local`.
 - Version is stored in the `VERSION` file at project root; bump it there before release. `make build`/`make install` inject it via `-ldflags`.
+- **Always bump VERSION** when making code changes (features, fixes, refactors) — even small ones. Follow semver: patch for fixes, minor for features.
 - **After every completed task**: update documentation (README, docs/, CODE MAP, COMMANDS in AGENTS.md if flags/structure changed) and make a git commit. Mandatory — do not wait for explicit instruction.
 
 ## ANTI-PATTERNS (THIS PROJECT)

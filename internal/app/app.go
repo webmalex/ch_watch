@@ -2,8 +2,12 @@ package app
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -96,11 +100,11 @@ func RunOnce(ctx context.Context, cfg RunConfig, stdout io.Writer, stderr io.Wri
 		return err
 	}
 
-	if _, ok, err := watch.SnapshotFile(filepath.Dir(path), path, time.Now()); err != nil {
+	info, err := os.Stat(path)
+	if err != nil {
 		return err
-	} else if !ok {
-		return runner.ErrInvalidSQLPath
 	}
+
 	cfg = normalizeRunConfig(cfg)
 	run, err := buildRunner(cfg, stdout, stderr)
 	if err != nil {
@@ -111,8 +115,21 @@ func RunOnce(ctx context.Context, cfg RunConfig, stdout io.Writer, stderr io.Wri
 	if err != nil {
 		return err
 	}
-	reporter.System("⚙️ RUNNER", runSystemMessage(path, cfg))
 
+	if info.IsDir() {
+		return runDir(ctx, path, cfg, run, reporter)
+	}
+	return runFile(ctx, path, cfg, run, reporter)
+}
+
+func runFile(ctx context.Context, path string, cfg RunConfig, run runner.Runner, reporter report.Reporter) error {
+	if _, ok, err := watch.SnapshotFile(filepath.Dir(path), path, time.Now()); err != nil {
+		return err
+	} else if !ok {
+		return runner.ErrInvalidSQLPath
+	}
+
+	reporter.System("⚙️ RUNNER", runSystemMessage(path, cfg))
 	request := model.RunRequest{
 		Path:     path,
 		Database: cfg.Database,
@@ -128,6 +145,51 @@ func RunOnce(ctx context.Context, cfg RunConfig, stdout io.Writer, stderr io.Wri
 	return result.Err
 }
 
+func runDir(ctx context.Context, root string, cfg RunConfig, run runner.Runner, reporter report.Reporter) error {
+	var files []string
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if !watch.IsSQLFile(path) {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return ErrNoSQLFiles
+	}
+	sort.Strings(files)
+
+	reporter.System("⚙️ RUNNER", dirSystemMessage(root, len(files), cfg))
+
+	var firstErr error
+	for _, f := range files {
+		request := model.RunRequest{
+			Path:     f,
+			Database: cfg.Database,
+			Client:   cfg.Client,
+			Format:   cfg.Format,
+			DryRun:   cfg.DryRun,
+			DumpFile: cfg.DumpFile,
+		}
+		reporter.Run(f)
+		result := run.Run(ctx, request)
+		reporter.Result(result)
+		if result.Err != nil && firstErr == nil {
+			firstErr = result.Err
+		}
+	}
+	return firstErr
+}
+
 func buildRunner(cfg RunConfig, stdout io.Writer, stderr io.Writer) (runner.Runner, error) {
 	if cfg.DryRun {
 		return runner.NewDryRunner(), nil
@@ -140,6 +202,8 @@ func buildRunner(cfg RunConfig, stdout io.Writer, stderr io.Writer) (runner.Runn
 	}
 	return runner.NewClickHouseRunner(stdout, stderr), nil
 }
+
+var ErrNoSQLFiles = errors.New("no .sql files found in directory")
 
 func normalizeRunConfig(cfg RunConfig) RunConfig {
 	if cfg.Client == "" {
@@ -170,6 +234,20 @@ func watchSystemMessage(root string, cfg RunConfig, printEvents bool) string {
 func runSystemMessage(path string, cfg RunConfig) string {
 	parts := []string{
 		"path=" + displayPath(path),
+		"mode=" + modeLabel(cfg.DryRun),
+		"client=" + cfg.Client,
+		"format=" + cfg.Format,
+	}
+	if cfg.Database != "" {
+		parts = append(parts, "db="+cfg.Database)
+	}
+	return strings.Join(parts, " | ")
+}
+
+func dirSystemMessage(root string, count int, cfg RunConfig) string {
+	parts := []string{
+		"root=" + displayPath(root),
+		fmt.Sprintf("files=%d", count),
 		"mode=" + modeLabel(cfg.DryRun),
 		"client=" + cfg.Client,
 		"format=" + cfg.Format,

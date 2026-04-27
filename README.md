@@ -34,6 +34,12 @@ go run ./cmd/ch_watch watch --root ./demo/ch --db demo --format PrettyCompact
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 ```
 
+Запуск всех `.sql` файлов в директории с дампов:
+
+```sh
+go run ./cmd/ch_watch run ./demo/ch --dump
+```
+
 ## Сборка и установка
 
 Локальная сборка binary:

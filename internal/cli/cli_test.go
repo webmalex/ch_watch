@@ -215,12 +215,94 @@ func TestWatchHelpAlias(t *testing.T) {
 	}
 }
 
+func TestRunDirectoryExecutesAllSQLFiles(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "sub"), 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	mustWriteFile(t, filepath.Join(root, "a.sql"), "SELECT 1;\n")
+	mustWriteFile(t, filepath.Join(root, "sub", "b.sql"), "SELECT 2;\n")
+	mustWriteFile(t, filepath.Join(root, "ignore.txt"), "not sql\n")
+
+	var stdout bytes.Buffer
+	err := Run(context.Background(), []string{"run", "--dry-run", root}, &stdout, io.Discard)
+	if err != nil {
+		t.Fatalf("run directory: %v", err)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "a.sql") {
+		t.Fatalf("missing a.sql in output: %q", output)
+	}
+	if !strings.Contains(output, "b.sql") {
+		t.Fatalf("missing b.sql in output: %q", output)
+	}
+	if !strings.Contains(output, "files=2") {
+		t.Fatalf("missing files=2 in output: %q", output)
+	}
+}
+
+func TestRunEmptyDirectoryReturnsError(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	err := Run(context.Background(), []string{"run", "--dry-run", root}, io.Discard, io.Discard)
+	if err == nil {
+		t.Fatal("expected error for empty directory")
+	}
+}
+
+func TestRunDirectoryOrderIsDeterministic(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mustWriteFile(t, filepath.Join(root, "z.sql"), "SELECT 1;\n")
+	mustWriteFile(t, filepath.Join(root, "a.sql"), "SELECT 2;\n")
+
+	var stdout bytes.Buffer
+	err := Run(context.Background(), []string{"run", "--dry-run", root}, &stdout, io.Discard)
+	if err != nil {
+		t.Fatalf("run directory: %v", err)
+	}
+
+	output := stdout.String()
+	aIdx := strings.Index(output, "a.sql")
+	zIdx := strings.Index(output, "z.sql")
+	if aIdx >= zIdx {
+		t.Fatalf("expected a.sql before z.sql, got a@%d z@%d", aIdx, zIdx)
+	}
+}
+
+func TestRunDirectoryWithDump(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	mustWriteFile(t, filepath.Join(root, "q.sql"), "SELECT 1;\n")
+
+	var stdout bytes.Buffer
+	err := Run(context.Background(), []string{"run", "--dry-run", "--dump", root}, &stdout, io.Discard)
+	if err != nil {
+		t.Fatalf("run directory --dump: %v", err)
+	}
+
+	if !strings.Contains(stdout.String(), "q.sql") {
+		t.Fatalf("missing q.sql in output: %q", stdout.String())
+	}
+}
+
 func writeSQLFile(t *testing.T, name string) string {
 	t.Helper()
 	dir := t.TempDir()
 	path := filepath.Join(dir, name)
-	if err := os.WriteFile(path, []byte("SELECT 1;\n"), 0o644); err != nil {
-		t.Fatalf("write sql: %v", err)
-	}
+	mustWriteFile(t, path, "SELECT 1;\n")
 	return path
+}
+
+func mustWriteFile(t *testing.T, path string, content string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
 }

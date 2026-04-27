@@ -34,7 +34,7 @@ func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer)
 	case "run":
 		if isHelp(args[1:]) {
 			fs, _ := newRunFlags()
-			writeCommandHelp(stderr, "run", "execute a single SQL file", fs)
+			writeCommandHelp(stderr, "run", "execute SQL file(s); pass a directory to run all .sql files recursively", fs)
 			return nil
 		}
 		cfg, err := parseRun(args[1:])
@@ -153,7 +153,7 @@ func writeHelp(w io.Writer) {
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintln(w, "Commands:")
 	_, _ = fmt.Fprintln(w, "  watch    watch a directory and rerun SQL on changes")
-	_, _ = fmt.Fprintln(w, "  run      execute a single SQL file")
+	_, _ = fmt.Fprintln(w, "  run      execute SQL file(s)")
 	_, _ = fmt.Fprintln(w, "  version  print version")
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintln(w, "Global flags:")
