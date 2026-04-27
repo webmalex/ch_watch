@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -84,7 +85,14 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 
 	err = r.exec(ctx, client, args, bytes.NewReader(sql), stdoutWriter, r.stderr)
 
+	result.Err = err
+	result.ExitCode = exitCode(err)
+	result.Duration = time.Since(started)
+
 	if dumpFile != nil {
+		if err == nil {
+			_, _ = fmt.Fprintf(dumpFile, "\n-- %s\n", result.Duration.Round(time.Millisecond))
+		}
 		_ = dumpFile.Close()
 		if err != nil {
 			_ = os.Remove(dumpPath)
@@ -92,9 +100,6 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 		}
 	}
 
-	result.Err = err
-	result.ExitCode = exitCode(err)
-	result.Duration = time.Since(started)
 	result.DumpPath = dumpPath
 	return result
 }

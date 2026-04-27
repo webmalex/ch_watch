@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"ch_watch/internal/model"
@@ -178,8 +179,11 @@ func TestDumpFileWritesResultNextToSQL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read dump: %v", err)
 	}
-	if string(data) != "result data\n" {
+	if !strings.HasPrefix(string(data), "result data\n") {
 		t.Fatalf("unexpected dump content: %q", string(data))
+	}
+	if !strings.Contains(string(data), "-- ") {
+		t.Fatalf("dump missing duration comment: %q", string(data))
 	}
 }
 
