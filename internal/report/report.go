@@ -75,8 +75,12 @@ func (r *ConsoleReporter) Result(result model.RunResult) {
 	if result.Err != nil && result.Stderr != "" {
 		_, _ = fmt.Fprintf(r.stderr, "%s\n", r.line(stderrStyle, "⚠️ STDERR", result.Stderr))
 	}
-	if result.DumpPath != "" {
-		_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(dumpStyle, "💾 DUMP", r.pathText(r.display(result.DumpPath))))
+	dumpPaths := result.DumpPaths
+	if len(dumpPaths) == 0 && result.DumpPath != "" {
+		dumpPaths = []string{result.DumpPath}
+	}
+	for _, path := range dumpPaths {
+		_, _ = fmt.Fprintf(r.stdout, "%s\n", r.line(dumpStyle, "💾 DUMP", r.pathText(r.display(path))))
 	}
 }
 
