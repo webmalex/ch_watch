@@ -41,8 +41,8 @@ demo/                # smoke-test SQL fixtures
 | `runDir` | function | `internal/app/app.go` | walk directory and execute all .sql files |
 | `(*Controller).Run` | method | `internal/queue/controller.go` | debounce, suppression, single-run scheduling |
 | `(*Recursive).Run` | method | `internal/watch/recursive.go` | recursive fsnotify event loop |
-| `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; tees stdout to dump file when `--dump` |
-| `DumpFilePath` | function | `internal/runner/clickhouse.go` | derives `.txt` dump path from `.sql` path |
+| `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; `--dump` writes canonical TSV then renders console/TXT/MD from it |
+| `DumpFilePath` | function | `internal/runner/clickhouse.go` | derives canonical `.tsv` dump path from `.sql` path |
 | `DecodeExitCode` | function | `internal/runner/clickhouse.go` | decodes exit code into signal name when 128+ |
 | `ConsoleReporter` | type | `internal/report/report.go` | colored lifecycle and system output |
 | `Version` | var | `internal/version/version.go` | version string from VERSION file, set via `-ldflags` at build time |
@@ -81,6 +81,7 @@ make smoke-watch
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
 go run ./cmd/ch_watch watch --root ./demo/ch --dry-run --dump
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --dump-txt --dump-md
 ./bin/ch_watch version
 make hooks-install
 ```

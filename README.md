@@ -10,7 +10,7 @@
 - queue изменения, пока текущий SQL file еще выполняется;
 - запускать SQL через `clickhouse` по `stdin`, автоматически выбирая `client` или `local` режим;
 - работать в `--dry-run` mode для smoke tests без ClickHouse;
-- дампить результат запроса в `.txt` файл рядом с SQL файлом (флаг `--dump`).
+- дампить результат запроса в `.tsv` файл рядом с SQL файлом (флаг `--dump`) и опционально рендерить `.txt`/`.md` без повторного тяжелого запроса.
 
 ## Быстрый старт
 
@@ -34,10 +34,18 @@ go run ./cmd/ch_watch watch --root ./demo/ch --db demo --format PrettyCompact
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 ```
 
-Запуск всех `.sql` файлов в директории с дампов:
+Запуск всех `.sql` файлов в директории с canonical TSV dump:
 
 ```sh
 go run ./cmd/ch_watch run ./demo/ch --dump
+```
+
+Дополнительные человекочитаемые dump views из того же результата:
+
+```sh
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump-txt
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump-md
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --dump-txt --dump-md
 ```
 
 ## Сборка и установка
@@ -94,7 +102,9 @@ make hooks-install
 - `--suppress`: окно suppression для повторных fingerprints, по умолчанию `250ms`
 - `--print-events`: печатать normalized watcher events
 - `--dry-run`: не выполнять SQL, а только печатать `RUN`/`OK`
-- `--dump`: сохранять результат запроса в `.txt` файл рядом с SQL файлом (одинаковое имя, расширение `.txt`)
+- `--dump`: сохранять результат запроса в canonical `.tsv` файл рядом с SQL файлом (`TabSeparatedWithNamesAndTypes`)
+- `--dump-txt`: дополнительно рендерить dump в `.txt` (`PrettyCompact`); включает `--dump`
+- `--dump-md`: дополнительно рендерить dump в `.md` (`Markdown`); включает `--dump`
 
 ## Версия
 
