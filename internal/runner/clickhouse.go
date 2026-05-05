@@ -65,39 +65,79 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 	if client == "" {
 		client = "clickhouse"
 	}
-	if request.DumpFile {
-		return r.runWithDump(ctx, request, client, sql, result)
-	}
 
+	needsTSVPipeline := request.DumpText || request.DumpMarkdown
+
+	switch {
+	case request.DumpFile && needsTSVPipeline:
+		return r.runDumpWithRender(ctx, request, client, sql, result)
+	case request.DumpFile:
+		return r.runDumpDirect(ctx, request, client, sql, result)
+	case needsTSVPipeline:
+		request.DumpFile = true
+		return r.runDumpWithRender(ctx, request, client, sql, result)
+	default:
+		return r.runPlain(ctx, request, client, sql, result)
+	}
+}
+
+func (r ClickHouseRunner) runPlain(ctx context.Context, request model.RunRequest, client string, sql []byte, result model.RunResult) model.RunResult {
 	var stderrBuf bytes.Buffer
 	stderrWriter := io.MultiWriter(r.stderr, &stderrBuf)
-	err = r.exec(ctx, client, queryArgs(request, request.Format), bytes.NewReader(sql), r.stdout, stderrWriter)
+	err := r.exec(ctx, client, queryArgs(request, request.Format), bytes.NewReader(sql), r.stdout, stderrWriter)
 
 	result.Err = err
 	result.ExitCode = exitCode(err)
-	result.Duration = time.Since(started)
+	result.Duration = time.Since(result.StartedAt)
 	result.Stderr = strings.TrimSpace(stderrBuf.String())
 	return result
 }
 
-func DumpFilePath(sqlPath string) string {
-	return dumpPath(sqlPath, ".tsv")
+func (r ClickHouseRunner) runDumpDirect(ctx context.Context, request model.RunRequest, client string, sql []byte, result model.RunResult) model.RunResult {
+	var stderrBuf bytes.Buffer
+	stderrWriter := io.MultiWriter(r.stderr, &stderrBuf)
+
+	txtPath := TextDumpFilePath(request.Path)
+	txtTmpPath := txtPath + ".tmp"
+
+	dumpFile, err := os.Create(txtTmpPath)
+	if err != nil {
+		result.Err = err
+		result.ExitCode = 1
+		result.Duration = time.Since(result.StartedAt)
+		return result
+	}
+
+	stdoutWriter := io.MultiWriter(r.stdout, dumpFile)
+	err = r.exec(ctx, client, queryArgs(request, request.Format), bytes.NewReader(sql), stdoutWriter, stderrWriter)
+
+	result.Err = err
+	result.ExitCode = exitCode(err)
+	result.Duration = time.Since(result.StartedAt)
+	result.Stderr = strings.TrimSpace(stderrBuf.String())
+
+	if err == nil {
+		_, _ = fmt.Fprintf(dumpFile, "\n-- %s\n", result.Duration.Round(time.Millisecond))
+	}
+	_ = dumpFile.Close()
+
+	if err != nil {
+		_ = os.Remove(txtTmpPath)
+		return result
+	}
+	if err = os.Rename(txtTmpPath, txtPath); err != nil {
+		_ = os.Remove(txtTmpPath)
+		result.Err = err
+		result.ExitCode = 1
+		return result
+	}
+
+	result.DumpPath = txtPath
+	result.DumpPaths = []string{txtPath}
+	return result
 }
 
-func TextDumpFilePath(sqlPath string) string {
-	return dumpPath(sqlPath, ".txt")
-}
-
-func MarkdownDumpFilePath(sqlPath string) string {
-	return dumpPath(sqlPath, ".md")
-}
-
-func dumpPath(sqlPath string, extension string) string {
-	ext := filepath.Ext(sqlPath)
-	return strings.TrimSuffix(sqlPath, ext) + extension
-}
-
-func (r ClickHouseRunner) runWithDump(ctx context.Context, request model.RunRequest, client string, sql []byte, result model.RunResult) model.RunResult {
+func (r ClickHouseRunner) runDumpWithRender(ctx context.Context, request model.RunRequest, client string, sql []byte, result model.RunResult) model.RunResult {
 	var stderrBuf bytes.Buffer
 	stderrWriter := io.MultiWriter(r.stderr, &stderrBuf)
 	tsvPath := DumpFilePath(request.Path)
@@ -145,7 +185,7 @@ func (r ClickHouseRunner) runWithDump(ctx context.Context, request model.RunRequ
 	}
 
 	if request.DumpText {
-		path, renderErr := r.renderDumpFile(ctx, client, tsvPath, TextDumpFilePath(request.Path), prettyDumpFormat)
+		txtPath, renderErr := r.renderDumpFile(ctx, client, tsvPath, TextDumpFilePath(request.Path), prettyDumpFormat)
 		if renderErr != nil {
 			result.Err = renderErr
 			result.ExitCode = exitCode(renderErr)
@@ -154,10 +194,12 @@ func (r ClickHouseRunner) runWithDump(ctx context.Context, request model.RunRequ
 			result.DumpPaths = dumpPaths
 			return result
 		}
-		dumpPaths = append(dumpPaths, path)
+		if appendErr := appendDurationComment(txtPath, result.StartedAt); appendErr == nil {
+			dumpPaths = append(dumpPaths, txtPath)
+		}
 	}
 	if request.DumpMarkdown {
-		path, renderErr := r.renderDumpFile(ctx, client, tsvPath, MarkdownDumpFilePath(request.Path), markdownDumpFormat)
+		mdPath, renderErr := r.renderDumpFile(ctx, client, tsvPath, MarkdownDumpFilePath(request.Path), markdownDumpFormat)
 		if renderErr != nil {
 			result.Err = renderErr
 			result.ExitCode = exitCode(renderErr)
@@ -166,7 +208,9 @@ func (r ClickHouseRunner) runWithDump(ctx context.Context, request model.RunRequ
 			result.DumpPaths = dumpPaths
 			return result
 		}
-		dumpPaths = append(dumpPaths, path)
+		if appendErr := appendDurationComment(mdPath, result.StartedAt); appendErr == nil {
+			dumpPaths = append(dumpPaths, mdPath)
+		}
 	}
 
 	result.Err = nil
@@ -176,6 +220,23 @@ func (r ClickHouseRunner) runWithDump(ctx context.Context, request model.RunRequ
 	result.DumpPath = tsvPath
 	result.DumpPaths = dumpPaths
 	return result
+}
+
+func DumpFilePath(sqlPath string) string {
+	return dumpPath(sqlPath, ".tsv")
+}
+
+func TextDumpFilePath(sqlPath string) string {
+	return dumpPath(sqlPath, ".txt")
+}
+
+func MarkdownDumpFilePath(sqlPath string) string {
+	return dumpPath(sqlPath, ".md")
+}
+
+func dumpPath(sqlPath string, extension string) string {
+	ext := filepath.Ext(sqlPath)
+	return strings.TrimSuffix(sqlPath, ext) + extension
 }
 
 func queryArgs(request model.RunRequest, format string) []string {
@@ -242,6 +303,16 @@ func (r ClickHouseRunner) renderDumpFile(ctx context.Context, client string, tsv
 		return "", err
 	}
 	return outputPath, nil
+}
+
+func appendDurationComment(path string, startedAt time.Time) error {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintf(f, "\n-- %s\n", time.Since(startedAt).Round(time.Millisecond))
+	_ = f.Close()
+	return err
 }
 
 func defaultExec(ctx context.Context, name string, args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {

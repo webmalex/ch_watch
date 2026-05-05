@@ -224,9 +224,6 @@ func normalizeRunConfig(cfg RunConfig) RunConfig {
 	if cfg.Format == "" {
 		cfg.Format = "PrettyCompact"
 	}
-	if cfg.DumpText || cfg.DumpMarkdown {
-		cfg.DumpFile = true
-	}
 	return cfg
 }
 

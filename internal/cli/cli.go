@@ -67,9 +67,9 @@ func newWatchFlags() (*flag.FlagSet, *app.WatchConfig) {
 	fs.DurationVar(&cfg.Suppress, "suppress", 250*time.Millisecond, "suppression window")
 	fs.BoolVar(&cfg.PrintEvents, "print-events", false, "print normalized events")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
-	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to canonical .tsv next to SQL file")
-	fs.BoolVar(&cfg.DumpText, "dump-txt", false, "also render dump to PrettyCompact .txt")
-	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "also render dump to Markdown .md")
+	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to PrettyCompact .txt next to SQL file")
+	fs.BoolVar(&cfg.DumpText, "dump-txt", false, "render via TSV pipeline to PrettyCompact .txt")
+	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "render via TSV pipeline to Markdown .md")
 	return fs, cfg
 }
 
@@ -94,9 +94,9 @@ func newRunFlags() (*flag.FlagSet, *app.RunConfig) {
 	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
-	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to canonical .tsv next to SQL file")
-	fs.BoolVar(&cfg.DumpText, "dump-txt", false, "also render dump to PrettyCompact .txt")
-	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "also render dump to Markdown .md")
+	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result to PrettyCompact .txt next to SQL file")
+	fs.BoolVar(&cfg.DumpText, "dump-txt", false, "render via TSV pipeline to PrettyCompact .txt")
+	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "render via TSV pipeline to Markdown .md")
 	return fs, cfg
 }
 

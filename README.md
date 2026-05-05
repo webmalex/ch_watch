@@ -10,7 +10,7 @@
 - queue изменения, пока текущий SQL file еще выполняется;
 - запускать SQL через `clickhouse` по `stdin`, автоматически выбирая `client` или `local` режим;
 - работать в `--dry-run` mode для smoke tests без ClickHouse;
-- дампить результат запроса в `.tsv` файл рядом с SQL файлом (флаг `--dump`) и опционально рендерить `.txt`/`.md` без повторного тяжелого запроса.
+- дампить результат запроса в файлы рядом с SQL файлом: `--dump` (PrettyCompact `.txt`), `--dump-txt` (TSV pipeline → `.txt`), `--dump-md` (TSV pipeline → `.md`); во все файлы добавляется комментарий с длительностью запроса.
 
 ## Быстрый старт
 
@@ -34,13 +34,13 @@ go run ./cmd/ch_watch watch --root ./demo/ch --db demo --format PrettyCompact
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 ```
 
-Запуск всех `.sql` файлов в директории с canonical TSV dump:
+Запуск всех `.sql` файлов в директории с PrettyCompact dump:
 
 ```sh
 go run ./cmd/ch_watch run ./demo/ch --dump
 ```
 
-Дополнительные человекочитаемые dump views из того же результата:
+Дополнительные dump views через TSV pipeline (оптимизация — без повторного запроса):
 
 ```sh
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump-txt
@@ -102,9 +102,9 @@ make hooks-install
 - `--suppress`: окно suppression для повторных fingerprints, по умолчанию `250ms`
 - `--print-events`: печатать normalized watcher events
 - `--dry-run`: не выполнять SQL, а только печатать `RUN`/`OK`
-- `--dump`: сохранять результат запроса в canonical `.tsv` файл рядом с SQL файлом (`TabSeparatedWithNamesAndTypes`)
-- `--dump-txt`: дополнительно рендерить dump в `.txt` (`PrettyCompact`); включает `--dump`
-- `--dump-md`: дополнительно рендерить dump в `.md` (`Markdown`); включает `--dump`
+- `--dump`: сохранять результат запроса в PrettyCompact `.txt` файл рядом с SQL файлом (надежно, корректно для `WITH TOTALS` и множественных result sets)
+- `--dump-txt`: рендерить результат через TSV pipeline в `.txt` (`PrettyCompact`); включает canonical `.tsv` dump
+- `--dump-md`: рендерить результат через TSV pipeline в `.md` (`Markdown`); включает canonical `.tsv` dump
 
 ## Версия
 

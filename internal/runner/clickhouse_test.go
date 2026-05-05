@@ -187,7 +187,7 @@ func TestDryRunnerBypassesSubprocessExecution(t *testing.T) {
 	}
 }
 
-func TestDumpFileWritesResultNextToSQL(t *testing.T) {
+func TestDumpDirectWritesPrettyCompactTxt(t *testing.T) {
 	t.Parallel()
 
 	path := writeSQL(t, "SELECT 1;\n")
@@ -197,10 +197,6 @@ func TestDumpFileWritesResultNextToSQL(t *testing.T) {
 	runner := NewClickHouseRunner(&stdout, io.Discard)
 	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
 		calls = append(calls, append([]string(nil), args...))
-		if !isRenderCall(args) && containsArg(args, "TabSeparatedWithNames") {
-			_, _ = io.WriteString(stdout, "id\tname\n1\ta\n")
-			return nil
-		}
 		_, _ = io.WriteString(stdout, "pretty output\n")
 		return nil
 	}
@@ -214,34 +210,35 @@ func TestDumpFileWritesResultNextToSQL(t *testing.T) {
 	if result.Err != nil {
 		t.Fatalf("unexpected error: %v", result.Err)
 	}
-	if result.DumpPath == "" {
-		t.Fatal("expected dump path")
-	}
 
-	want := DumpFilePath(path)
+	want := TextDumpFilePath(path)
 	if result.DumpPath != want {
 		t.Fatalf("dump path: got %q, want %q", result.DumpPath, want)
 	}
 	if stdout.String() != "pretty output\n" {
 		t.Fatalf("unexpected stdout: %q", stdout.String())
 	}
-	if len(result.DumpPaths) != 1 || result.DumpPaths[0] != want {
-		t.Fatalf("unexpected dump paths: %#v", result.DumpPaths)
+	if len(calls) != 1 {
+		t.Fatalf("expected single query call (no render), got %d", len(calls))
 	}
-	if len(calls) != 2 {
-		t.Fatalf("expected query + console render calls, got %#v", calls)
+	if containsArg(calls[0], "TabSeparatedWithNames") {
+		t.Fatalf("--dump should use PrettyCompact, not TSV: %#v", calls[0])
 	}
 
 	data, err := os.ReadFile(result.DumpPath)
 	if err != nil {
 		t.Fatalf("read dump: %v", err)
 	}
-	if string(data) != "id\tname\n1\ta\n" {
-		t.Fatalf("unexpected dump content: %q", string(data))
+	content := string(data)
+	if !strings.HasPrefix(content, "pretty output\n") {
+		t.Fatalf("unexpected dump content: %q", content)
+	}
+	if !strings.Contains(content, "-- ") {
+		t.Fatalf("dump missing duration comment: %q", content)
 	}
 }
 
-func TestDumpFileCanRenderTextAndMarkdown(t *testing.T) {
+func TestDumpTSVPipelineRendersTextAndMarkdown(t *testing.T) {
 	t.Parallel()
 
 	path := writeSQL(t, "SELECT 1;\n")
@@ -250,7 +247,7 @@ func TestDumpFileCanRenderTextAndMarkdown(t *testing.T) {
 		switch {
 		case !isRenderCall(args) && containsArg(args, "TabSeparatedWithNames"):
 			_, _ = io.WriteString(stdout, "id\n1\n")
-		case containsArg(args, "Markdown"):
+		case isRenderCall(args) && containsArg(args, "Markdown"):
 			_, _ = io.WriteString(stdout, "| id |\n|---|\n| 1 |\n")
 		default:
 			_, _ = io.WriteString(stdout, "pretty\n")
@@ -261,7 +258,6 @@ func TestDumpFileCanRenderTextAndMarkdown(t *testing.T) {
 	result := runner.Run(context.Background(), model.RunRequest{
 		Path:         path,
 		Format:       "PrettyCompact",
-		DumpFile:     true,
 		DumpText:     true,
 		DumpMarkdown: true,
 	})
@@ -273,8 +269,28 @@ func TestDumpFileCanRenderTextAndMarkdown(t *testing.T) {
 	if strings.Join(result.DumpPaths, "|") != strings.Join(wantPaths, "|") {
 		t.Fatalf("dump paths: got %#v, want %#v", result.DumpPaths, wantPaths)
 	}
-	assertFileContent(t, TextDumpFilePath(path), "pretty\n")
-	assertFileContent(t, MarkdownDumpFilePath(path), "| id |\n|---|\n| 1 |\n")
+	txtData, txtErr := os.ReadFile(TextDumpFilePath(path))
+	if txtErr != nil {
+		t.Fatalf("read txt: %v", txtErr)
+	}
+	txtContent := string(txtData)
+	if !strings.HasPrefix(txtContent, "pretty\n") {
+		t.Fatalf("txt content: got %q, want prefix %q", txtContent, "pretty\n")
+	}
+	if !strings.Contains(txtContent, "-- ") {
+		t.Fatalf("txt content missing duration comment: %q", txtContent)
+	}
+	mdData, mdErr := os.ReadFile(MarkdownDumpFilePath(path))
+	if mdErr != nil {
+		t.Fatalf("read md: %v", mdErr)
+	}
+	mdContent := string(mdData)
+	if !strings.HasPrefix(mdContent, "| id |\n|---|\n| 1 |\n") {
+		t.Fatalf("md content: got %q, want prefix", mdContent)
+	}
+	if !strings.Contains(mdContent, "-- ") {
+		t.Fatalf("md content missing duration comment: %q", mdContent)
+	}
 }
 
 func TestDumpWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
@@ -298,7 +314,7 @@ func TestDumpWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
 	result := runner.Run(context.Background(), model.RunRequest{
 		Path:     path,
 		Format:   "PrettyCompact",
-		DumpFile: true,
+		DumpText: true,
 	})
 
 	if result.Err != nil {
@@ -315,13 +331,15 @@ func TestDumpWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
 		t.Fatalf("tsv content: got %q, want %q", string(tsvData), wantTSV)
 	}
 
-	if len(renderInputs) != 1 {
-		t.Fatalf("expected 1 render call, got %d", len(renderInputs))
+	if len(renderInputs) != 2 {
+		t.Fatalf("expected 2 render calls (console + txt), got %d", len(renderInputs))
 	}
 
 	wantRender := "id\tval\n1\ta\n2\tb\n"
-	if renderInputs[0] != wantRender {
-		t.Fatalf("render input should exclude totals rows: got %q, want %q", renderInputs[0], wantRender)
+	for i, input := range renderInputs {
+		if input != wantRender {
+			t.Fatalf("render input[%d]: got %q, want %q", i, input, wantRender)
+		}
 	}
 }
 
@@ -348,7 +366,7 @@ func TestDumpFileRemovedOnFailure(t *testing.T) {
 		t.Fatalf("expected empty dump path on failure, got %q", result.DumpPath)
 	}
 
-	dumpPath := DumpFilePath(path)
+	dumpPath := TextDumpFilePath(path)
 	if _, err := os.Stat(dumpPath); !os.IsNotExist(err) {
 		t.Fatal("dump file should not exist after failure")
 	}
@@ -374,7 +392,7 @@ func TestDumpFileNotCreatedWhenDisabled(t *testing.T) {
 		t.Fatalf("expected empty dump path when dump disabled, got %q", result.DumpPath)
 	}
 
-	dumpPath := DumpFilePath(path)
+	dumpPath := TextDumpFilePath(path)
 	if _, err := os.Stat(dumpPath); !os.IsNotExist(err) {
 		t.Fatal("dump file should not exist when dump disabled")
 	}
@@ -419,17 +437,6 @@ func containsArg(args []string, want string) bool {
 
 func isRenderCall(args []string) bool {
 	return containsArg(args, "--input-format")
-}
-
-func assertFileContent(t *testing.T, path string, want string) {
-	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read %s: %v", path, err)
-	}
-	if string(data) != want {
-		t.Fatalf("%s content: got %q, want %q", path, string(data), want)
-	}
 }
 
 type fakeExitError int
