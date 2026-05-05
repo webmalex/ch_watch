@@ -192,10 +192,16 @@ func TestDumpFileWritesResultNextToSQL(t *testing.T) {
 
 	path := writeSQL(t, "SELECT 1;\n")
 	var stdout bytes.Buffer
+	var calls [][]string
 
 	runner := NewClickHouseRunner(&stdout, io.Discard)
-	runner.exec = func(_ context.Context, _ string, _ []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
-		_, _ = io.WriteString(stdout, "result data\n")
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		calls = append(calls, append([]string(nil), args...))
+		if !isRenderCall(args) && containsArg(args, "TabSeparatedWithNamesAndTypes") {
+			_, _ = io.WriteString(stdout, "id\tname\nUInt8\tString\n1\ta\n")
+			return nil
+		}
+		_, _ = io.WriteString(stdout, "pretty output\n")
 		return nil
 	}
 
@@ -216,20 +222,59 @@ func TestDumpFileWritesResultNextToSQL(t *testing.T) {
 	if result.DumpPath != want {
 		t.Fatalf("dump path: got %q, want %q", result.DumpPath, want)
 	}
-	if stdout.String() != "result data\n" {
+	if stdout.String() != "pretty output\n" {
 		t.Fatalf("unexpected stdout: %q", stdout.String())
+	}
+	if len(result.DumpPaths) != 1 || result.DumpPaths[0] != want {
+		t.Fatalf("unexpected dump paths: %#v", result.DumpPaths)
+	}
+	if len(calls) != 2 {
+		t.Fatalf("expected query + console render calls, got %#v", calls)
 	}
 
 	data, err := os.ReadFile(result.DumpPath)
 	if err != nil {
 		t.Fatalf("read dump: %v", err)
 	}
-	if !strings.HasPrefix(string(data), "result data\n") {
+	if string(data) != "id\tname\nUInt8\tString\n1\ta\n" {
 		t.Fatalf("unexpected dump content: %q", string(data))
 	}
-	if !strings.Contains(string(data), "-- ") {
-		t.Fatalf("dump missing duration comment: %q", string(data))
+}
+
+func TestDumpFileCanRenderTextAndMarkdown(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		switch {
+		case !isRenderCall(args) && containsArg(args, "TabSeparatedWithNamesAndTypes"):
+			_, _ = io.WriteString(stdout, "id\nUInt8\n1\n")
+		case containsArg(args, "Markdown"):
+			_, _ = io.WriteString(stdout, "| id |\n|---|\n| 1 |\n")
+		default:
+			_, _ = io.WriteString(stdout, "pretty\n")
+		}
+		return nil
 	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:         path,
+		Format:       "PrettyCompact",
+		DumpFile:     true,
+		DumpText:     true,
+		DumpMarkdown: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	wantPaths := []string{DumpFilePath(path), TextDumpFilePath(path), MarkdownDumpFilePath(path)}
+	if strings.Join(result.DumpPaths, "|") != strings.Join(wantPaths, "|") {
+		t.Fatalf("dump paths: got %#v, want %#v", result.DumpPaths, wantPaths)
+	}
+	assertFileContent(t, TextDumpFilePath(path), "pretty\n")
+	assertFileContent(t, MarkdownDumpFilePath(path), "| id |\n|---|\n| 1 |\n")
 }
 
 func TestDumpFileRemovedOnFailure(t *testing.T) {
@@ -291,15 +336,51 @@ func TestDumpFilePath(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct{ in, want string }{
-		{"/tmp/query.sql", "/tmp/query.txt"},
-		{"/home/user/ch/dev/tmp.sql", "/home/user/ch/dev/tmp.txt"},
-		{"query.sql", "query.txt"},
+		{"/tmp/query.sql", "/tmp/query.tsv"},
+		{"/home/user/ch/dev/tmp.sql", "/home/user/ch/dev/tmp.tsv"},
+		{"query.sql", "query.tsv"},
 	}
 	for _, tt := range tests {
 		got := DumpFilePath(tt.in)
 		if got != tt.want {
 			t.Errorf("DumpFilePath(%q) = %q, want %q", tt.in, got, tt.want)
 		}
+	}
+}
+
+func TestTextAndMarkdownDumpFilePaths(t *testing.T) {
+	t.Parallel()
+
+	path := "/tmp/query.sql"
+	if got := TextDumpFilePath(path); got != "/tmp/query.txt" {
+		t.Fatalf("unexpected text path: %q", got)
+	}
+	if got := MarkdownDumpFilePath(path); got != "/tmp/query.md" {
+		t.Fatalf("unexpected markdown path: %q", got)
+	}
+}
+
+func containsArg(args []string, want string) bool {
+	for _, arg := range args {
+		if arg == want {
+			return true
+		}
+	}
+	return false
+}
+
+func isRenderCall(args []string) bool {
+	return containsArg(args, "--input-format")
+}
+
+func assertFileContent(t *testing.T, path string, want string) {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	if string(data) != want {
+		t.Fatalf("%s content: got %q, want %q", path, string(data), want)
 	}
 }
 
