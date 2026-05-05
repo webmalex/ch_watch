@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	canonicalDumpFormat = "TabSeparatedWithNamesAndTypes"
+	canonicalDumpFormat = "TabSeparatedWithNames"
 	prettyDumpFormat    = "PrettyCompact"
 	markdownDumpFormat  = "Markdown"
 )

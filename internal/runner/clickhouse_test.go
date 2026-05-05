@@ -197,8 +197,8 @@ func TestDumpFileWritesResultNextToSQL(t *testing.T) {
 	runner := NewClickHouseRunner(&stdout, io.Discard)
 	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
 		calls = append(calls, append([]string(nil), args...))
-		if !isRenderCall(args) && containsArg(args, "TabSeparatedWithNamesAndTypes") {
-			_, _ = io.WriteString(stdout, "id\tname\nUInt8\tString\n1\ta\n")
+		if !isRenderCall(args) && containsArg(args, "TabSeparatedWithNames") {
+			_, _ = io.WriteString(stdout, "id\tname\n1\ta\n")
 			return nil
 		}
 		_, _ = io.WriteString(stdout, "pretty output\n")
@@ -236,7 +236,7 @@ func TestDumpFileWritesResultNextToSQL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read dump: %v", err)
 	}
-	if string(data) != "id\tname\nUInt8\tString\n1\ta\n" {
+	if string(data) != "id\tname\n1\ta\n" {
 		t.Fatalf("unexpected dump content: %q", string(data))
 	}
 }
@@ -248,8 +248,8 @@ func TestDumpFileCanRenderTextAndMarkdown(t *testing.T) {
 	runner := NewClickHouseRunner(io.Discard, io.Discard)
 	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
 		switch {
-		case !isRenderCall(args) && containsArg(args, "TabSeparatedWithNamesAndTypes"):
-			_, _ = io.WriteString(stdout, "id\nUInt8\n1\n")
+		case !isRenderCall(args) && containsArg(args, "TabSeparatedWithNames"):
+			_, _ = io.WriteString(stdout, "id\n1\n")
 		case containsArg(args, "Markdown"):
 			_, _ = io.WriteString(stdout, "| id |\n|---|\n| 1 |\n")
 		default:
