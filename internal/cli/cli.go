@@ -59,7 +59,7 @@ func newWatchFlags() (*flag.FlagSet, *app.WatchConfig) {
 	fs.SetOutput(io.Discard)
 
 	cfg := &app.WatchConfig{}
-	fs.StringVar(&cfg.Root, "root", "./ch", "watch root directory")
+	fs.StringVar(&cfg.Root, "root", "./ch", "watch root directory (default: ./ch; positional arg takes precedence)")
 	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database (client mode)")
 	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
@@ -81,8 +81,11 @@ func parseWatch(args []string) (app.WatchConfig, error) {
 	if err := fs.Parse(args); err != nil {
 		return app.WatchConfig{}, err
 	}
-	if fs.NArg() != 0 {
-		return app.WatchConfig{}, errors.New("watch does not accept positional arguments")
+	if fs.NArg() > 1 {
+		return app.WatchConfig{}, errors.New("watch accepts at most one positional argument (root directory)")
+	}
+	if fs.NArg() == 1 {
+		cfg.Root = fs.Arg(0)
 	}
 	return *cfg, nil
 }
@@ -173,8 +176,11 @@ func writeHelp(w io.Writer) {
 
 func writeCommandHelp(w io.Writer, name string, desc string, fs *flag.FlagSet) {
 	_, _ = fmt.Fprintf(w, "Usage: ch_watch %s [options]", name)
-	if name == "run" {
+	switch name {
+	case "run":
 		_, _ = fmt.Fprint(w, " <path>")
+	case "watch":
+		_, _ = fmt.Fprint(w, " [root]")
 	}
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintf(w, "\n%s\n\n", desc)

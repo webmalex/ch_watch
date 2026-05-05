@@ -165,10 +165,38 @@ func TestWatchHelpShowsFlags(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	output := buf.String()
-	for _, want := range []string{"Usage:", "-root", "-db", "-format", "-dump", "-dump-txt", "-dump-md", "-pipe-txt", "-pipe-md", "-dry-run", "-debounce", "-suppress"} {
+	for _, want := range []string{"Usage:", "[root]", "-db", "-format", "-dump", "-pipe-txt", "-pipe-md", "-dry-run", "-debounce", "-suppress"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("watch help missing %q: %q", want, output)
 		}
+	}
+}
+
+func TestWatchPositionalRootOverridesDefault(t *testing.T) {
+	t.Parallel()
+
+	fs, cfg := newWatchFlags()
+	if err := fs.Parse([]string{"./demo/ch"}); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if fs.NArg() != 1 {
+		t.Fatalf("expected 1 positional arg, got %d", fs.NArg())
+	}
+	cfg.Root = fs.Arg(0)
+	if cfg.Root != "./demo/ch" {
+		t.Fatalf("root: got %q, want %q", cfg.Root, "./demo/ch")
+	}
+}
+
+func TestWatchRootFlagStillWorks(t *testing.T) {
+	t.Parallel()
+
+	fs, cfg := newWatchFlags()
+	if err := fs.Parse([]string{"--root", "./custom"}); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if cfg.Root != "./custom" {
+		t.Fatalf("root: got %q, want %q", cfg.Root, "./custom")
 	}
 }
 

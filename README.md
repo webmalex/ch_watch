@@ -23,7 +23,7 @@ go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dry-run
 Watch demo tree в dry run:
 
 ```sh
-go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
+go run ./cmd/ch_watch watch ./demo/ch --dry-run
 ```
 
 Реальный запуск через ClickHouse:
@@ -106,7 +106,7 @@ make hooks-install
 
 ## Полезные flags
 
-- `--root`: root directory для watch, по умолчанию `./ch`
+- `[root]`: root directory для watch (позиционный аргумент, по умолчанию `./ch`; `--root` тоже работает)
 - `--db`: имя ClickHouse database; если задан, используется `clickhouse client --database <db>`
 - `--client`: путь к binary `clickhouse`, по умолчанию `clickhouse`
 - `--format`: output format для `clickhouse client/local`, по умолчанию `PrettyCompact`
