@@ -17,12 +17,14 @@ func (f FileFingerprint) Key() string {
 }
 
 type RunRequest struct {
-	Path     string
-	Database string
-	Client   string
-	Format   string
-	DryRun   bool
-	DumpFile bool
+	Path         string
+	Database     string
+	Client       string
+	Format       string
+	DryRun       bool
+	DumpFile     bool
+	DumpText     bool
+	DumpMarkdown bool
 }
 
 type RunResult struct {
@@ -33,6 +35,7 @@ type RunResult struct {
 	Err       error
 	DryRun    bool
 	DumpPath  string
+	DumpPaths []string
 	Stderr    string
 }
 

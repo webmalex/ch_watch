@@ -165,7 +165,7 @@ func TestWatchHelpShowsFlags(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	output := buf.String()
-	for _, want := range []string{"Usage:", "-root", "-db", "-format", "-dump", "-dry-run", "-debounce", "-suppress"} {
+	for _, want := range []string{"Usage:", "-root", "-db", "-format", "-dump", "-dump-txt", "-dump-md", "-dry-run", "-debounce", "-suppress"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("watch help missing %q: %q", want, output)
 		}
@@ -186,6 +186,22 @@ func TestRunHelpShowsPath(t *testing.T) {
 	}
 	if !strings.Contains(output, "-db") {
 		t.Fatalf("run help missing --db: %q", output)
+	}
+	if !strings.Contains(output, "-dump-txt") || !strings.Contains(output, "-dump-md") {
+		t.Fatalf("run help missing dump render flags: %q", output)
+	}
+}
+
+func TestRunDumpRenderFlags(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQLFile(t, "query.sql")
+	cfg, err := parseRun([]string{path, "--dump-txt", "--dump-md"})
+	if err != nil {
+		t.Fatalf("parse run: %v", err)
+	}
+	if !cfg.DumpText || !cfg.DumpMarkdown {
+		t.Fatalf("expected render dump flags, got %#v", cfg)
 	}
 }
 

@@ -32,3 +32,13 @@ func TestNormalizeRunConfigDefaultsClickHouseBinary(t *testing.T) {
 		t.Fatalf("unexpected format default: %q", cfg.Format)
 	}
 }
+
+func TestNormalizeRunConfigDumpRenderFlagsEnableCanonicalDump(t *testing.T) {
+	t.Parallel()
+
+	cfg := normalizeRunConfig(RunConfig{DumpText: true})
+
+	if !cfg.DumpFile {
+		t.Fatal("expected dump text to enable canonical dump")
+	}
+}

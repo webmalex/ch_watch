@@ -19,24 +19,28 @@ import (
 )
 
 type WatchConfig struct {
-	Root        string
-	Database    string
-	Client      string
-	Format      string
-	Debounce    time.Duration
-	Suppress    time.Duration
-	PrintEvents bool
-	DryRun      bool
-	DumpFile    bool
+	Root         string
+	Database     string
+	Client       string
+	Format       string
+	Debounce     time.Duration
+	Suppress     time.Duration
+	PrintEvents  bool
+	DryRun       bool
+	DumpFile     bool
+	DumpText     bool
+	DumpMarkdown bool
 }
 
 type RunConfig struct {
-	Path     string
-	Database string
-	Client   string
-	Format   string
-	DryRun   bool
-	DumpFile bool
+	Path         string
+	Database     string
+	Client       string
+	Format       string
+	DryRun       bool
+	DumpFile     bool
+	DumpText     bool
+	DumpMarkdown bool
 }
 
 func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.Writer) error {
@@ -45,11 +49,13 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 		return err
 	}
 	runCfg := normalizeRunConfig(RunConfig{
-		Database: cfg.Database,
-		Client:   cfg.Client,
-		Format:   cfg.Format,
-		DryRun:   cfg.DryRun,
-		DumpFile: cfg.DumpFile,
+		Database:     cfg.Database,
+		Client:       cfg.Client,
+		Format:       cfg.Format,
+		DryRun:       cfg.DryRun,
+		DumpFile:     cfg.DumpFile,
+		DumpText:     cfg.DumpText,
+		DumpMarkdown: cfg.DumpMarkdown,
 	})
 	run, err := buildRunner(runCfg, stdout, stderr)
 	if err != nil {
@@ -72,11 +78,13 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 		Debounce: cfg.Debounce,
 		Suppress: cfg.Suppress,
 		Request: model.RunRequest{
-			Database: cfg.Database,
-			Client:   runCfg.Client,
-			Format:   runCfg.Format,
-			DryRun:   cfg.DryRun,
-			DumpFile: cfg.DumpFile,
+			Database:     cfg.Database,
+			Client:       runCfg.Client,
+			Format:       runCfg.Format,
+			DryRun:       cfg.DryRun,
+			DumpFile:     runCfg.DumpFile,
+			DumpText:     runCfg.DumpText,
+			DumpMarkdown: runCfg.DumpMarkdown,
 		},
 	}, func(path string, now time.Time) (model.FileFingerprint, bool, error) {
 		return watch.SnapshotFile(root, path, now)
@@ -131,12 +139,14 @@ func runFile(ctx context.Context, path string, cfg RunConfig, run runner.Runner,
 
 	reporter.System("⚙️ RUNNER", runSystemMessage(path, cfg))
 	request := model.RunRequest{
-		Path:     path,
-		Database: cfg.Database,
-		Client:   cfg.Client,
-		Format:   cfg.Format,
-		DryRun:   cfg.DryRun,
-		DumpFile: cfg.DumpFile,
+		Path:         path,
+		Database:     cfg.Database,
+		Client:       cfg.Client,
+		Format:       cfg.Format,
+		DryRun:       cfg.DryRun,
+		DumpFile:     cfg.DumpFile,
+		DumpText:     cfg.DumpText,
+		DumpMarkdown: cfg.DumpMarkdown,
 	}
 
 	reporter.Run(path)
@@ -173,12 +183,14 @@ func runDir(ctx context.Context, root string, cfg RunConfig, run runner.Runner, 
 	var firstErr error
 	for _, f := range files {
 		request := model.RunRequest{
-			Path:     f,
-			Database: cfg.Database,
-			Client:   cfg.Client,
-			Format:   cfg.Format,
-			DryRun:   cfg.DryRun,
-			DumpFile: cfg.DumpFile,
+			Path:         f,
+			Database:     cfg.Database,
+			Client:       cfg.Client,
+			Format:       cfg.Format,
+			DryRun:       cfg.DryRun,
+			DumpFile:     cfg.DumpFile,
+			DumpText:     cfg.DumpText,
+			DumpMarkdown: cfg.DumpMarkdown,
 		}
 		reporter.Run(f)
 		result := run.Run(ctx, request)
@@ -211,6 +223,9 @@ func normalizeRunConfig(cfg RunConfig) RunConfig {
 	}
 	if cfg.Format == "" {
 		cfg.Format = "PrettyCompact"
+	}
+	if cfg.DumpText || cfg.DumpMarkdown {
+		cfg.DumpFile = true
 	}
 	return cfg
 }
