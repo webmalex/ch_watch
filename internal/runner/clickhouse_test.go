@@ -277,6 +277,54 @@ func TestDumpFileCanRenderTextAndMarkdown(t *testing.T) {
 	assertFileContent(t, MarkdownDumpFilePath(path), "| id |\n|---|\n| 1 |\n")
 }
 
+func TestDumpWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1 GROUP BY WITH TOTALS;\n")
+	var renderInputs []string
+
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, args []string, stdin io.Reader, stdout io.Writer, _ io.Writer) error {
+		if !isRenderCall(args) {
+			_, _ = io.WriteString(stdout, "id\tval\n1\ta\n2\tb\n\n0\tab\n")
+			return nil
+		}
+		body, _ := io.ReadAll(stdin)
+		renderInputs = append(renderInputs, string(body))
+		_, _ = io.WriteString(stdout, "pretty\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		Format:   "PrettyCompact",
+		DumpFile: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+
+	tsvData, err := os.ReadFile(DumpFilePath(path))
+	if err != nil {
+		t.Fatalf("read tsv: %v", err)
+	}
+
+	wantTSV := "id\tval\n1\ta\n2\tb\n\n0\tab\n"
+	if string(tsvData) != wantTSV {
+		t.Fatalf("tsv content: got %q, want %q", string(tsvData), wantTSV)
+	}
+
+	if len(renderInputs) != 1 {
+		t.Fatalf("expected 1 render call, got %d", len(renderInputs))
+	}
+
+	wantRender := "id\tval\n1\ta\n2\tb\n"
+	if renderInputs[0] != wantRender {
+		t.Fatalf("render input should exclude totals rows: got %q, want %q", renderInputs[0], wantRender)
+	}
+}
+
 func TestDumpFileRemovedOnFailure(t *testing.T) {
 	t.Parallel()
 

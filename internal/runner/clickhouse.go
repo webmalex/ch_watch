@@ -206,7 +206,20 @@ func (r ClickHouseRunner) renderDump(ctx context.Context, client string, tsvPath
 	defer func() {
 		_ = input.Close()
 	}()
-	return r.exec(ctx, client, renderArgs(format), input, stdout, stderr)
+	dataOnly := stripAfterBlankLine(input)
+	return r.exec(ctx, client, renderArgs(format), dataOnly, stdout, stderr)
+}
+
+func stripAfterBlankLine(r io.Reader) *bytes.Reader {
+	raw, _ := io.ReadAll(r)
+	cut := len(raw)
+	for i := 0; i+1 < len(raw); i++ {
+		if raw[i] == '\n' && raw[i+1] == '\n' {
+			cut = i + 1
+			break
+		}
+	}
+	return bytes.NewReader(raw[:cut])
 }
 
 func (r ClickHouseRunner) renderDumpFile(ctx context.Context, client string, tsvPath string, outputPath string, format string) (string, error) {
