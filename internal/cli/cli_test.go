@@ -165,7 +165,7 @@ func TestWatchHelpShowsFlags(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	output := buf.String()
-	for _, want := range []string{"Usage:", "-root", "-db", "-format", "-dump", "-dump-txt", "-dump-md", "-dry-run", "-debounce", "-suppress"} {
+	for _, want := range []string{"Usage:", "-root", "-db", "-format", "-dump", "-dump-txt", "-dump-md", "-pipe-txt", "-pipe-md", "-dry-run", "-debounce", "-suppress"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("watch help missing %q: %q", want, output)
 		}
@@ -188,7 +188,10 @@ func TestRunHelpShowsPath(t *testing.T) {
 		t.Fatalf("run help missing --db: %q", output)
 	}
 	if !strings.Contains(output, "-dump-txt") || !strings.Contains(output, "-dump-md") {
-		t.Fatalf("run help missing dump render flags: %q", output)
+		t.Fatalf("run help missing dump flags: %q", output)
+	}
+	if !strings.Contains(output, "-pipe-txt") || !strings.Contains(output, "-pipe-md") {
+		t.Fatalf("run help missing pipe flags: %q", output)
 	}
 }
 
@@ -201,7 +204,20 @@ func TestRunDumpRenderFlags(t *testing.T) {
 		t.Fatalf("parse run: %v", err)
 	}
 	if !cfg.DumpText || !cfg.DumpMarkdown {
-		t.Fatalf("expected render dump flags, got %#v", cfg)
+		t.Fatalf("expected dump flags, got %#v", cfg)
+	}
+}
+
+func TestRunPipeFlags(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQLFile(t, "query.sql")
+	cfg, err := parseRun([]string{path, "--pipe-txt", "--pipe-md"})
+	if err != nil {
+		t.Fatalf("parse run: %v", err)
+	}
+	if !cfg.PipeText || !cfg.PipeMarkdown {
+		t.Fatalf("expected pipe flags, got %#v", cfg)
 	}
 }
 

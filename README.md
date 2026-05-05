@@ -10,7 +10,7 @@
 - queue изменения, пока текущий SQL file еще выполняется;
 - запускать SQL через `clickhouse` по `stdin`, автоматически выбирая `client` или `local` режим;
 - работать в `--dry-run` mode для smoke tests без ClickHouse;
-- дампить результат запроса в файлы рядом с SQL файлом: `--dump` (PrettyCompact `.txt`), `--dump-txt` (TSV pipeline → `.txt`), `--dump-md` (TSV pipeline → `.md`); во все файлы добавляется комментарий с длительностью запроса.
+- дампить результат запроса в файлы рядом с SQL файлом: `--dump`/`--dump-txt` (прямой dump в PrettyCompact `.txt`), `--dump-md` (прямой dump в Markdown `.md`), `--pipe-txt`/`--pipe-md` (TSV pipeline → render `.txt`/`.md`); во все файлы добавляется комментарий с длительностью запроса.
 
 ## Быстрый старт
 
@@ -34,18 +34,30 @@ go run ./cmd/ch_watch watch --root ./demo/ch --db demo --format PrettyCompact
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 ```
 
-Запуск всех `.sql` файлов в директории с PrettyCompact dump:
+Запуск всех `.sql` файлов в директории с прямым PrettyCompact dump:
 
 ```sh
 go run ./cmd/ch_watch run ./demo/ch --dump
 ```
 
-Дополнительные dump views через TSV pipeline (оптимизация — без повторного запроса):
+Прямой dump в Markdown:
 
 ```sh
-go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump-txt
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump-md
-go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --dump-txt --dump-md
+```
+
+TSV pipeline — render `.txt`/`.md` из canonical `.tsv` без повторного тяжелого запроса:
+
+```sh
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --pipe-txt
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --pipe-md
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --pipe-txt --pipe-md
+```
+
+Комбинирование прямого dump + pipe:
+
+```sh
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --pipe-md
 ```
 
 ## Сборка и установка
@@ -102,9 +114,11 @@ make hooks-install
 - `--suppress`: окно suppression для повторных fingerprints, по умолчанию `250ms`
 - `--print-events`: печатать normalized watcher events
 - `--dry-run`: не выполнять SQL, а только печатать `RUN`/`OK`
-- `--dump`: сохранять результат запроса в PrettyCompact `.txt` файл рядом с SQL файлом (надежно, корректно для `WITH TOTALS` и множественных result sets)
-- `--dump-txt`: рендерить результат через TSV pipeline в `.txt` (`PrettyCompact`); включает canonical `.tsv` dump
-- `--dump-md`: рендерить результат через TSV pipeline в `.md` (`Markdown`); включает canonical `.tsv` dump
+- `--dump`: сохранять результат запроса напрямую в файл в формате `--format` (default PrettyCompact `.txt`; надёжно, корректно для `WITH TOTALS` и множественных result sets)
+- `--dump-txt`: shorthand для `--dump` с PrettyCompact → `.txt`
+- `--dump-md`: shorthand для `--dump` с Markdown → `.md`
+- `--pipe-txt`: TSV pipeline → render PrettyCompact `.txt` из canonical `.tsv` (может терять precision floats)
+- `--pipe-md`: TSV pipeline → render Markdown `.md` из canonical `.tsv` (может терять precision floats)
 
 ## Версия
 

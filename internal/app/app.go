@@ -30,6 +30,8 @@ type WatchConfig struct {
 	DumpFile     bool
 	DumpText     bool
 	DumpMarkdown bool
+	PipeText     bool
+	PipeMarkdown bool
 }
 
 type RunConfig struct {
@@ -41,6 +43,8 @@ type RunConfig struct {
 	DumpFile     bool
 	DumpText     bool
 	DumpMarkdown bool
+	PipeText     bool
+	PipeMarkdown bool
 }
 
 func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.Writer) error {
@@ -56,6 +60,8 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 		DumpFile:     cfg.DumpFile,
 		DumpText:     cfg.DumpText,
 		DumpMarkdown: cfg.DumpMarkdown,
+		PipeText:     cfg.PipeText,
+		PipeMarkdown: cfg.PipeMarkdown,
 	})
 	run, err := buildRunner(runCfg, stdout, stderr)
 	if err != nil {
@@ -85,6 +91,8 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 			DumpFile:     runCfg.DumpFile,
 			DumpText:     runCfg.DumpText,
 			DumpMarkdown: runCfg.DumpMarkdown,
+			PipeText:     runCfg.PipeText,
+			PipeMarkdown: runCfg.PipeMarkdown,
 		},
 	}, func(path string, now time.Time) (model.FileFingerprint, bool, error) {
 		return watch.SnapshotFile(root, path, now)
@@ -147,6 +155,8 @@ func runFile(ctx context.Context, path string, cfg RunConfig, run runner.Runner,
 		DumpFile:     cfg.DumpFile,
 		DumpText:     cfg.DumpText,
 		DumpMarkdown: cfg.DumpMarkdown,
+		PipeText:     cfg.PipeText,
+		PipeMarkdown: cfg.PipeMarkdown,
 	}
 
 	reporter.Run(path)
@@ -191,6 +201,8 @@ func runDir(ctx context.Context, root string, cfg RunConfig, run runner.Runner, 
 			DumpFile:     cfg.DumpFile,
 			DumpText:     cfg.DumpText,
 			DumpMarkdown: cfg.DumpMarkdown,
+			PipeText:     cfg.PipeText,
+			PipeMarkdown: cfg.PipeMarkdown,
 		}
 		reporter.Run(f)
 		result := run.Run(ctx, request)

@@ -25,6 +25,8 @@ type RunRequest struct {
 	DumpFile     bool
 	DumpText     bool
 	DumpMarkdown bool
+	PipeText     bool
+	PipeMarkdown bool
 }
 
 type RunResult struct {

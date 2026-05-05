@@ -41,7 +41,7 @@ demo/                # smoke-test SQL fixtures
 | `runDir` | function | `internal/app/app.go` | walk directory and execute all .sql files |
 | `(*Controller).Run` | method | `internal/queue/controller.go` | debounce, suppression, single-run scheduling |
 | `(*Recursive).Run` | method | `internal/watch/recursive.go` | recursive fsnotify event loop |
-| `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; three dump paths: `runPlain` (no dump), `runDumpDirect` (`--dump` → PrettyCompact `.txt`), `runDumpWithRender` (`--dump-txt`/`--dump-md` → TSV pipeline → render `.txt`/`.md`) |
+| `ClickHouseRunner.Run` | method | `internal/runner/clickhouse.go` | chooses `clickhouse client` vs `clickhouse local`; three dump paths: `runPlain` (no dump), `runDumpDirect` (`--dump`/`--dump-txt`/`--dump-md` → direct tee in target format), `runPipe` (`--pipe-txt`/`--pipe-md` → TSV pipeline → render `.txt`/`.md`); direct + pipe combinable |
 | `DumpFilePath` | function | `internal/runner/clickhouse.go` | derives canonical `.tsv` dump path from `.sql` path |
 | `TextDumpFilePath` | function | `internal/runner/clickhouse.go` | derives PrettyCompact `.txt` dump path from `.sql` path |
 | `MarkdownDumpFilePath` | function | `internal/runner/clickhouse.go` | derives Markdown `.md` dump path from `.sql` path |
@@ -84,6 +84,8 @@ go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 go run ./cmd/ch_watch watch --root ./demo/ch --dry-run
 go run ./cmd/ch_watch watch --root ./demo/ch --dry-run --dump
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --dump-txt --dump-md
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --pipe-txt --pipe-md
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --pipe-md
 ./bin/ch_watch version
 make hooks-install
 ```

@@ -238,7 +238,55 @@ func TestDumpDirectWritesPrettyCompactTxt(t *testing.T) {
 	}
 }
 
-func TestDumpTSVPipelineRendersTextAndMarkdown(t *testing.T) {
+func TestDumpMarkdownWritesDirectly(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	var stdout bytes.Buffer
+	var calls [][]string
+
+	runner := NewClickHouseRunner(&stdout, io.Discard)
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		calls = append(calls, append([]string(nil), args...))
+		_, _ = io.WriteString(stdout, "| col |\n|-----|\n| 1   |\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:         path,
+		Format:       "PrettyCompact",
+		DumpMarkdown: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+
+	want := MarkdownDumpFilePath(path)
+	if result.DumpPath != want {
+		t.Fatalf("dump path: got %q, want %q", result.DumpPath, want)
+	}
+	if len(calls) != 1 {
+		t.Fatalf("expected single query call, got %d", len(calls))
+	}
+	if !containsArg(calls[0], "Markdown") {
+		t.Fatalf("--dump-md should use Markdown format: %#v", calls[0])
+	}
+	if containsArg(calls[0], "TabSeparatedWithNames") {
+		t.Fatalf("--dump-md should be direct, not TSV pipeline: %#v", calls[0])
+	}
+
+	data, err := os.ReadFile(result.DumpPath)
+	if err != nil {
+		t.Fatalf("read dump: %v", err)
+	}
+	content := string(data)
+	if !strings.HasPrefix(content, "| col |\n") {
+		t.Fatalf("unexpected dump content: %q", content)
+	}
+}
+
+func TestPipeTSVRendersTextAndMarkdown(t *testing.T) {
 	t.Parallel()
 
 	path := writeSQL(t, "SELECT 1;\n")
@@ -258,8 +306,8 @@ func TestDumpTSVPipelineRendersTextAndMarkdown(t *testing.T) {
 	result := runner.Run(context.Background(), model.RunRequest{
 		Path:         path,
 		Format:       "PrettyCompact",
-		DumpText:     true,
-		DumpMarkdown: true,
+		PipeText:     true,
+		PipeMarkdown: true,
 	})
 
 	if result.Err != nil {
@@ -293,7 +341,7 @@ func TestDumpTSVPipelineRendersTextAndMarkdown(t *testing.T) {
 	}
 }
 
-func TestDumpWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
+func TestPipeWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
 	t.Parallel()
 
 	path := writeSQL(t, "SELECT 1 GROUP BY WITH TOTALS;\n")
@@ -314,7 +362,7 @@ func TestDumpWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
 	result := runner.Run(context.Background(), model.RunRequest{
 		Path:     path,
 		Format:   "PrettyCompact",
-		DumpText: true,
+		PipeText: true,
 	})
 
 	if result.Err != nil {
