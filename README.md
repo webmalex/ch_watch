@@ -2,6 +2,8 @@
 
 Нативный Go watcher для SQL debug workflows с event-driven rerun только измененного файла.
 
+Репозиторий: <https://github.com/webmalex/ch_watch>
+
 ## Что умеет
 
 - рекурсивно watch дерево `ch/`;
