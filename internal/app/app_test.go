@@ -4,7 +4,7 @@ import (
 	"io"
 	"testing"
 
-	"ch_watch/internal/runner"
+	"github.com/webmalex/ch_watch/internal/runner"
 )
 
 func TestBuildRunnerLiveModeDoesNotRequireDatabase(t *testing.T) {

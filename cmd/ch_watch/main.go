@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"ch_watch/internal/cli"
+	"github.com/webmalex/ch_watch/internal/cli"
 )
 
 func main() {

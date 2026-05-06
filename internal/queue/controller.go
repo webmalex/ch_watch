@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"ch_watch/internal/model"
-	"ch_watch/internal/report"
-	"ch_watch/internal/runner"
+	"github.com/webmalex/ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/report"
+	"github.com/webmalex/ch_watch/internal/runner"
 )
 
 type SnapshotFunc func(path string, now time.Time) (model.FileFingerprint, bool, error)

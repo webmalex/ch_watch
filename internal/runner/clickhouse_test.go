@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/model"
 )
 
 func TestClickHouseRunnerUsesClientModeWhenDatabaseProvided(t *testing.T) {

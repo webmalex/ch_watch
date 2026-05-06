@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/model"
 )
 
 func NormalizePath(path string) string {

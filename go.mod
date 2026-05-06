@@ -1,4 +1,4 @@
-module ch_watch
+module github.com/webmalex/ch_watch
 
 go 1.26.1
 

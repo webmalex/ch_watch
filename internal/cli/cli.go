@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"ch_watch/internal/app"
-	"ch_watch/internal/version"
+	"github.com/webmalex/ch_watch/internal/app"
+	"github.com/webmalex/ch_watch/internal/version"
 )
 
 func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer) error {

@@ -3,7 +3,7 @@ package testutil
 import (
 	"sync"
 
-	"ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/model"
 )
 
 type MemoryReporter struct {

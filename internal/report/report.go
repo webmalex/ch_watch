@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"ch_watch/internal/model"
-	"ch_watch/internal/runner"
+	"github.com/webmalex/ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/runner"
 )
 
 type Reporter interface {

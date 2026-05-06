@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"ch_watch/internal/model"
-	"ch_watch/internal/queue"
-	"ch_watch/internal/testutil"
+	"github.com/webmalex/ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/queue"
+	"github.com/webmalex/ch_watch/internal/testutil"
 )
 
 func TestRecursiveWatcherRunsChangedSQLFile(t *testing.T) {

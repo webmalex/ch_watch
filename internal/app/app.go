@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"ch_watch/internal/model"
-	"ch_watch/internal/queue"
-	"ch_watch/internal/report"
-	"ch_watch/internal/runner"
-	"ch_watch/internal/watch"
+	"github.com/webmalex/ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/queue"
+	"github.com/webmalex/ch_watch/internal/report"
+	"github.com/webmalex/ch_watch/internal/runner"
+	"github.com/webmalex/ch_watch/internal/watch"
 )
 
 type WatchConfig struct {

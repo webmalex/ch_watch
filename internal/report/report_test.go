@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"ch_watch/internal/model"
+	"github.com/webmalex/ch_watch/internal/model"
 )
 
 func TestConsoleReporterUsesColorAndEmojiForRunLifecycle(t *testing.T) {
