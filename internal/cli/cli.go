@@ -43,7 +43,7 @@ func Run(ctx context.Context, args []string, stdout io.Writer, stderr io.Writer)
 		}
 		return app.RunOnce(ctx, cfg, stdout, stderr)
 	case "version", "-v", "--version":
-		_, _ = fmt.Fprintf(stdout, "ch_watch %s\n", version.Version)
+		_, _ = fmt.Fprintf(stdout, "ch_watch %s\n", version.Current())
 		return nil
 	case "help", "-h", "--help":
 		writeHelp(stderr)
@@ -159,7 +159,7 @@ func isHelp(args []string) bool {
 }
 
 func writeHelp(w io.Writer) {
-	_, _ = fmt.Fprintf(w, "ch_watch %s\n\n", version.Version)
+	_, _ = fmt.Fprintf(w, "ch_watch %s\n\n", version.Current())
 	_, _ = fmt.Fprintln(w, "SQL file watcher for ClickHouse debug workflows.")
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintln(w, "Commands:")
