@@ -23,6 +23,19 @@ go install github.com/webmalex/ch_watch/cmd/ch_watch@latest
 
 Binary будет установлен в `GOBIN` (или `$(go env GOPATH)/bin`, если `GOBIN` не задан). Убедитесь, что этот каталог добавлен в `PATH`.
 
+> **Примечание:** `go install` с remote path работает только для публичных репозиториев. Если репозиторий приватный, используйте локальную сборку (см. ниже).
+
+## Бинарные архивы (GitHub Releases)
+
+При создании tag в формате `v*` (например, `v0.7.0`) GitHub Actions автоматически собирает бинарные архивы и публикует их как GitHub Release. Workflow описан в `.github/workflows/release.yml`.
+
+Архивы собираются для:
+
+- linux, darwin, windows
+- amd64, arm64
+
+Скачать binary можно со страницы Releases репозитория, распаковать и использовать без установки Go.
+
 ## Локальная сборка
 
 Собрать binary в `./bin/ch_watch`:
