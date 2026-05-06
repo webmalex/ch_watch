@@ -2,6 +2,8 @@
 
 # ch_watch
 
+![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/webmalex/ch_watch/badges/coverage-badge.json)
+
 Go CLI watcher for ClickHouse SQL debug workflows. Watches a directory tree for `.sql` file changes, debounces noisy filesystem events, and re-executes only the changed file through `clickhouse local` or `clickhouse client`.
 
 ## Install

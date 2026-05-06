@@ -39,6 +39,55 @@ jobs:
         with:
           go-version: "1.26.x"
       - run: make test-cover
+      - name: Coverage summary
+        if: always()
+        run: |
+          echo "## Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          go tool cover -func=coverage.out >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          TOTAL=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          echo "**Total: ${TOTAL}**" >> $GITHUB_STEP_SUMMARY
+      - name: Generate badge JSON
+        if: github.event_name == 'push'
+        run: |
+          TOTAL=$(go tool cover -func=coverage.out | grep total | awk '{print $3}')
+          PCT=${TOTAL%\%}
+          if (( $(echo "$PCT < 60" | bc -l) )); then COLOR=red
+          elif (( $(echo "$PCT < 80" | bc -l) )); then COLOR=yellow
+          else COLOR=green
+          fi
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s","color":"%s"}\n' "$TOTAL" "$COLOR" > coverage-badge.json
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: coverage-badge
+          path: coverage-badge.json
+          retention-days: 1
+
+  badge:
+    name: Update badge
+    if: github.event_name == 'push'
+    needs: coverage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-badge
+      - name: Push badge to orphan branch
+        run: |
+          cp coverage-badge.json /tmp/coverage-badge.json
+          git checkout --orphan badges
+          git rm -rf .
+          cp /tmp/coverage-badge.json coverage-badge.json
+          git add coverage-badge.json
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "update coverage badge [skip ci]"
+          git push origin badges --force
 
   lint:
     name: GolangCI-Lint
