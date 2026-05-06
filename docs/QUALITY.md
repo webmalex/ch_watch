@@ -179,6 +179,18 @@ make check-full
 - `make lint`
 - `make vuln`
 
+## GitHub Actions CI
+
+Push и pull request в ветку `master` автоматически проходят те же проверки, что и локальный `make check-full`. Workflow определяется в `.github/workflows/ci.yml` и включает пять параллельных job:
+
+- **check** — `make check` (fmt-check, test, vet, build)
+- **race** — `make test-race`
+- **coverage** — `make test-cover`
+- **lint** — `golangci-lint` (через `golangci-lint-action`)
+- **vuln** — `govulncheck ./...`
+
+CI полностью соответствует локальному `make check-full` — перед release или крупным merge достаточно убедиться, что все job прошли.
+
 ## Ручные smoke checks
 
 ### One-shot dry run
