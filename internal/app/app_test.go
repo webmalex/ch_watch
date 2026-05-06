@@ -32,3 +32,21 @@ func TestNormalizeRunConfigDefaultsClickHouseBinary(t *testing.T) {
 		t.Fatalf("unexpected format default: %q", cfg.Format)
 	}
 }
+
+func TestNormalizeRunConfigFallsBackToEnvDB(t *testing.T) {
+	t.Setenv("CH_DB", "testdb")
+
+	cfg := normalizeRunConfig(RunConfig{})
+	if cfg.Database != "testdb" {
+		t.Fatalf("expected database from env, got %q", cfg.Database)
+	}
+}
+
+func TestNormalizeRunConfigFlagOverridesEnvDB(t *testing.T) {
+	t.Setenv("CH_DB", "envdb")
+
+	cfg := normalizeRunConfig(RunConfig{Database: "flagdb"})
+	if cfg.Database != "flagdb" {
+		t.Fatalf("expected flag to override env, got %q", cfg.Database)
+	}
+}

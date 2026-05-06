@@ -107,7 +107,7 @@ make hooks-install
 ## Полезные flags
 
 - `[root]`: root directory для watch (позиционный аргумент, по умолчанию `./ch`; `--root` тоже работает)
-- `--db`: имя ClickHouse database; если задан, используется `clickhouse client --database <db>`
+- `--db`: имя ClickHouse database; если задан, используется `clickhouse client --database <db>` (также `CH_DB` env variable; флаг имеет приоритет)
 - `--client`: путь к binary `clickhouse`, по умолчанию `clickhouse`
 - `--format`: output format для `clickhouse client/local`, по умолчанию `PrettyCompact`
 - `--debounce`: окно batch dedupe, по умолчанию `75ms`

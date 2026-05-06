@@ -233,6 +233,9 @@ func normalizeRunConfig(cfg RunConfig) RunConfig {
 	if cfg.Client == "" {
 		cfg.Client = "clickhouse"
 	}
+	if cfg.Database == "" {
+		cfg.Database = os.Getenv("CH_DB")
+	}
 	if cfg.Format == "" {
 		cfg.Format = "PrettyCompact"
 	}

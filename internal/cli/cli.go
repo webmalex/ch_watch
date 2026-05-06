@@ -60,7 +60,7 @@ func newWatchFlags() (*flag.FlagSet, *app.WatchConfig) {
 
 	cfg := &app.WatchConfig{}
 	fs.StringVar(&cfg.Root, "root", "./ch", "watch root directory (default: ./ch; positional arg takes precedence)")
-	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database (client mode)")
+	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database (client mode); env: CH_DB")
 	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.DurationVar(&cfg.Debounce, "debounce", 75*time.Millisecond, "debounce window")
@@ -95,7 +95,7 @@ func newRunFlags() (*flag.FlagSet, *app.RunConfig) {
 	fs.SetOutput(io.Discard)
 
 	cfg := &app.RunConfig{}
-	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database (client mode)")
+	fs.StringVar(&cfg.Database, "db", "", "ClickHouse database (client mode); env: CH_DB")
 	fs.StringVar(&cfg.Client, "client", "clickhouse", "clickhouse binary path")
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
