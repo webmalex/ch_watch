@@ -64,6 +64,16 @@ go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --pipe-md
 
 ## Сборка и установка
 
+### Установка из репозитория (публичная)
+
+```sh
+go install github.com/webmalex/ch_watch/cmd/ch_watch@latest
+```
+
+Binary будет установлен в `GOBIN` (или `$(go env GOPATH)/bin`, если `GOBIN` не задан). Убедитесь, что этот каталог добавлен в `PATH`.
+
+### Локальная сборка и установка (разработка)
+
 Локальная сборка binary:
 
 ```sh
@@ -74,6 +84,12 @@ make build
 
 ```sh
 make install
+```
+
+или напрямую:
+
+```sh
+go install ./cmd/ch_watch
 ```
 
 Подробности: `docs/INSTALL.md`

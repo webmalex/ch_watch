@@ -13,6 +13,16 @@ brew install go pre-commit golangci-lint govulncheck
 
 `pre-commit` уже нужен для hook workflow, а `golangci-lint` и `govulncheck` используются в расширенных quality checks.
 
+## Установка из репозитория (публичная)
+
+Для быстрой установки без клонирования репозитория:
+
+```sh
+go install github.com/webmalex/ch_watch/cmd/ch_watch@latest
+```
+
+Binary будет установлен в `GOBIN` (или `$(go env GOPATH)/bin`, если `GOBIN` не задан). Убедитесь, что этот каталог добавлен в `PATH`.
+
 ## Локальная сборка
 
 Собрать binary в `./bin/ch_watch`:
@@ -75,8 +85,9 @@ make hooks-install
 
 ## Обновление binary
 
+- для публичной установки снова выполнить `go install github.com/webmalex/ch_watch/cmd/ch_watch@latest`
 - для локальной сборки снова выполнить `make build`
-- для установленной версии снова выполнить `make install`
+- для установленной версии снова выполнить `make install` или `go install ./cmd/ch_watch`
 
 ## Очистка артефактов сборки
 
