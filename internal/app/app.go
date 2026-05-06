@@ -84,7 +84,7 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 		Debounce: cfg.Debounce,
 		Suppress: cfg.Suppress,
 		Request: model.RunRequest{
-			Database:     cfg.Database,
+			Database:     runCfg.Database,
 			Client:       runCfg.Client,
 			Format:       runCfg.Format,
 			DryRun:       cfg.DryRun,
