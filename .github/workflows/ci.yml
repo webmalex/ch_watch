@@ -58,7 +58,7 @@ jobs:
           else COLOR=green
           fi
           printf '{"schemaVersion":1,"label":"coverage","message":"%s","color":"%s"}\n' "$TOTAL" "$COLOR" > coverage-badge.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: github.event_name == 'push'
         with:
           name: coverage-badge
@@ -74,7 +74,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: coverage-badge
       - name: Push badge to orphan branch
