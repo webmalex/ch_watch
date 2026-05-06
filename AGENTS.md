@@ -54,7 +54,7 @@ demo/                # smoke-test SQL fixtures
 - Prefer injected dependencies (`exec`, clocks, fake runners, in-memory reporters) over real side effects in tests.
 - Use `make check` before commit and `make check-full` before merge/release.
 - **Always run `make check-full` locally before pushing** — it catches golangci-lint issues (errcheck, etc.) that `make check` skips. Do not rely on pre-commit hooks alone.
-- Docs are written in Russian; CLI names, flags, file globs, and technical terms stay in English.
+- `README.md` is written in English. `README.ru.md` and detailed docs under `docs/` are written in Russian. CLI names, flags, file globs, and technical terms stay in English in all files.
 - Default binary name is `clickhouse`; do not drift back to the legacy `clickhouse-client` default.
 - `--db` changes execution mode, not just a connection parameter: with DB uses `client`, without DB uses `local`.
 - Version is stored in the `VERSION` file at project root; bump it there before release. `make build`/`make install` inject it via `-ldflags`.
