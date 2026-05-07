@@ -276,6 +276,75 @@ func TestCommandKeyIncludesArguments(t *testing.T) {
 	}
 }
 
+func TestReleaseDryRun(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	versionFile := filepath.Join(root, "VERSION")
+	if err := os.WriteFile(versionFile, []byte("0.8.0\n"), 0o644); err != nil {
+		t.Fatalf("write VERSION: %v", err)
+	}
+	fake := newFake(root)
+	fake.outputs["git rev-parse --show-toplevel"] = root + "\n"
+
+	var stdout strings.Builder
+	err := Release(context.Background(), Config{DryRun: true, VersionFile: versionFile, Stdout: &stdout, runner: fake})
+	if err != nil {
+		t.Fatalf("Release returned error: %v", err)
+	}
+	out := stdout.String()
+	if !strings.Contains(out, "dry-run") || !strings.Contains(out, "v0.8.0") {
+		t.Fatalf("stdout does not describe dry-run release: %s", out)
+	}
+	if containsCommand(fake.calls, "gh", "release", "create") {
+		t.Fatalf("dry-run created a release: %#v", fake.calls)
+	}
+}
+
+func TestReleaseCreatesGitHubRelease(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	versionFile := filepath.Join(root, "VERSION")
+	if err := os.WriteFile(versionFile, []byte("0.8.0\n"), 0o644); err != nil {
+		t.Fatalf("write VERSION: %v", err)
+	}
+	fake := newFake(root)
+	fake.outputs["git rev-parse --show-toplevel"] = root + "\n"
+	fake.outputs["git branch --show-current"] = "master\n"
+	fake.outputs["git status --porcelain"] = ""
+	fake.outputs["git rev-parse HEAD"] = "cafebabe\n"
+	fake.outputs["gh run list --workflow ci.yml --limit 10 --json databaseId,headSha,headBranch,status,conclusion"] = `[{
+		"databaseId": 200,
+		"headSha": "cafebabe",
+		"headBranch": "master",
+		"status": "completed",
+		"conclusion": "success"
+	}]`
+	fake.outputs["gh run list --workflow release.yml --limit 10 --json databaseId,headSha,headBranch,status,conclusion"] = `[{
+		"databaseId": 201,
+		"headSha": "cafebabe",
+		"headBranch": "v0.8.0",
+		"status": "completed",
+		"conclusion": "success"
+	}]`
+
+	err := Release(context.Background(), Config{
+		VersionFile:    versionFile,
+		WorktreeParent: t.TempDir(),
+		runner:         fake,
+		watchSmoke:     func(context.Context, string, string, io.Writer, io.Writer) error { return nil },
+		sleep:          func(time.Duration) {},
+		pollLimit:      1,
+	})
+	if err != nil {
+		t.Fatalf("Release returned error: %v", err)
+	}
+	if !containsExactCommand(fake.calls, "gh", "release", "create", "v0.8.0", "--target", "cafebabe", "--title", "v0.8.0", "--generate-release-notes") {
+		t.Fatalf("Release did not create GitHub release with generate-release-notes: %#v", fake.calls)
+	}
+}
+
 func TestSyncMasterRebasesWhenLocalAhead(t *testing.T) {
 	t.Parallel()
 

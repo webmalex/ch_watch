@@ -23,6 +23,13 @@ func main() {
 }
 
 func run(ctx context.Context, args []string) error {
+	if len(args) > 0 && args[0] == "release" {
+		return runRelease(ctx, args[1:])
+	}
+	return runDepsAccept(ctx, args)
+}
+
+func runDepsAccept(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("ch_watch_maint", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 
@@ -38,6 +45,27 @@ func run(ctx context.Context, args []string) error {
 
 	return depsaccept.Run(ctx, depsaccept.Config{
 		PR:          *pr,
+		DryRun:      *dryRun,
+		VersionFile: *versionFile,
+		Stdout:      os.Stdout,
+		Stderr:      os.Stderr,
+	})
+}
+
+func runRelease(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("ch_watch_maint release", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+
+	dryRun := fs.Bool("dry-run", false, "print planned actions without commit, push, tag, or release")
+	versionFile := fs.String("version-file", "VERSION", "path to VERSION file")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return errors.New("unexpected positional arguments")
+	}
+
+	return depsaccept.Release(ctx, depsaccept.Config{
 		DryRun:      *dryRun,
 		VersionFile: *versionFile,
 		Stdout:      os.Stdout,
