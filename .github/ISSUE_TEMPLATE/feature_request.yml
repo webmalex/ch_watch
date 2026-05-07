@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a focused improvement for ch_watch
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What workflow limitation or pain point should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the smallest useful change that would solve the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mention any workaround or different approach you already tried.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add examples, commands, or links that clarify the request.
