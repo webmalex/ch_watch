@@ -40,6 +40,20 @@ test-cover:
 	go test -coverprofile=coverage.out -covermode=atomic $(GO_PACKAGES)
 	go tool cover -func=coverage.out
 
+test-cover-internal:
+	@# Coverage for internal/ packages only (excludes integration layers)
+	go test -coverprofile=coverage.out -covermode=atomic \
+		./internal/app/... \
+		./internal/cli/... \
+		./internal/model/... \
+		./internal/queue/... \
+		./internal/report/... \
+		./internal/runner/... \
+		./internal/version/... \
+		./internal/watch/...
+	@echo "--- Coverage (internal only, excluding testutil, depsaccept, cmd) ---"
+	@go tool cover -func=coverage.out | tail -1
+
 vet:
 	go vet $(GO_PACKAGES)
 
