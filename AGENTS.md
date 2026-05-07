@@ -78,6 +78,8 @@ demo/                # smoke-test SQL fixtures
 ```bash
 make check
 make check-full
+make release-check
+make pre-release
 make smoke-run
 make smoke-watch
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql

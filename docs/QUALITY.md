@@ -179,6 +179,14 @@ make check-full
 - `make lint`
 - `make vuln`
 
+### Проверка перед release
+
+```sh
+make release-check
+```
+
+`make release-check` выполняет `make check-full` и one-shot dry run через `make smoke-run`. `make pre-release` — короткий alias на ту же проверку.
+
 ## GitHub Actions CI
 
 Push и pull request в ветку `master` автоматически проходят те же проверки, что и локальный `make check-full`. Workflow определяется в `.github/workflows/ci.yml` и включает пять параллельных job:
@@ -211,6 +219,7 @@ make smoke-watch
 
 - перед commit: `make check`
 - для автоматизации локальных commits: `make hooks-install`
-- перед большим merge или release: `make check-full`
+- перед большим merge: `make check-full`
+- перед release: `make release-check`
 - после изменений в watcher semantics: `make smoke-watch`
 - после изменений в runner: `make smoke-run`, реальный `run --db <name>` (режим `clickhouse client`) и реальный `run` без `--db` (режим `clickhouse local`)

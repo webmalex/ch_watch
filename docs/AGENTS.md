@@ -28,5 +28,6 @@
 make build
 make check
 make check-full
+make release-check
 make hooks-install
 ```

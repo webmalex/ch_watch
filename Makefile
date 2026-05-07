@@ -7,7 +7,7 @@ GOFILES := $(shell find cmd internal -type f -name '*.go' -print)
 VERSION := $(file < VERSION)
 LDFLAGS := -X github.com/webmalex/ch_watch/internal/version.Version=$(VERSION)
 
-.PHONY: build install clean fmt fmt-check test test-race test-cover vet lint vuln smoke-run smoke-watch hooks-install hooks-update hooks-run hooks-run-push hooks-run-manual check check-full
+.PHONY: build install clean fmt fmt-check test test-race test-cover vet lint vuln smoke-run smoke-watch hooks-install hooks-update hooks-run hooks-run-push hooks-run-manual check check-full release-check pre-release
 
 build:
 	mkdir -p $(BIN_DIR)
@@ -74,3 +74,7 @@ hooks-run-manual:
 check: fmt-check test vet build
 
 check-full: check test-race test-cover lint vuln
+
+release-check: check-full smoke-run
+
+pre-release: release-check
