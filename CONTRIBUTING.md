@@ -6,6 +6,7 @@
 
 - **Go 1.26.1+**
 - **make** (для стандартных target'ов)
+- **GitHub CLI (`gh`)** для maintenance workflow с Dependabot и release
 - **golangci-lint**, **govulncheck**, **pre-commit** (опционально, но рекомендуются; см. `docs/QUALITY.md`)
 - **clickhouse** (опционально, только для реальных SQL-запросов; без него работает `--dry-run`)
 
@@ -66,3 +67,25 @@ feat: add --dump-md flag for Markdown query output
 - Все CI jobs должны быть зелёными: `check`, `race`, `coverage`, `lint`, `vuln`.
 - Один PR, одна логическая задача. Крупные изменения стоит разбить на последовательные PR.
 - Перед отправкой: `make check-full`.
+
+## Dependabot и patch release
+
+Для локального preview без merge, commit, push и tag:
+
+```sh
+make deps_accept_dry_run
+```
+
+Для принятия последнего открытого Dependabot PR и выпуска release одной командой:
+
+```sh
+make deps_accept
+```
+
+Если нужно зафиксировать конкретный PR, можно передать `PR`:
+
+```sh
+make deps_accept PR=42
+```
+
+Команда сама находит последний open PR от Dependabot, показывает summary изменённых файлов, гоняет local gate в временном worktree, ждёт GitHub PR checks, squash-merge'ит PR, ждёт `master` CI, создаёт `v*` tag, ждёт release workflow и проверяет `GOPROXY=direct go install` с запуском binary. Версия берётся из `VERSION`: если tag `v<VERSION>` ещё не существует, выпускается она; если tag уже есть, команда поднимает patch до первого свободного tag и commit'ит новый `VERSION`.

@@ -10,8 +10,10 @@ Go CLI watcher for SQL debug workflows. Core value: rerun only the changed SQL f
 ## STRUCTURE
 ```text
 cmd/ch_watch/        # binary entry and signal handling
+cmd/ch_watch_maint/  # local maintenance automation for Dependabot accept/release
 internal/app/        # orchestration and runtime defaults
 internal/cli/        # command parsing and flag handling
+internal/depsaccept/ # gh/git/go release gate for Dependabot PRs
 internal/watch/      # recursive fsnotify watcher and SQL filtering
 internal/queue/      # debounce, suppression, sequential execution
 internal/runner/     # ClickHouse execution modes
@@ -25,6 +27,7 @@ demo/                # smoke-test SQL fixtures
 | Task | Location | Notes |
 |------|----------|-------|
 | Start from entrypoint | `cmd/ch_watch/main.go` | `main()` only wires signal handling into CLI |
+| Accept Dependabot PR | `cmd/ch_watch_maint/main.go`, `internal/depsaccept/` | `make deps_accept_dry_run` previews; `make deps_accept` performs local/remote gates and release |
 | Understand top-level flow | `internal/app/app.go` | `RunWatch()` and `RunOnce()` coordinate everything |
 | Change watcher semantics | `internal/watch/AGENTS.md` | Highest risk area for noisy events and path filtering |
 | Change debounce / rerun policy | `internal/queue/AGENTS.md` | Owns batching, suppression, and run ordering |
@@ -36,6 +39,7 @@ demo/                # smoke-test SQL fixtures
 | Symbol | Type | Location | Role |
 |--------|------|----------|------|
 | `main` | function | `cmd/ch_watch/main.go` | signal-aware binary entry |
+| `depsaccept.Run` | function | `internal/depsaccept/accept.go` | automates Dependabot PR gates, squash merge, version/tag release, and `go install` verification |
 | `RunWatch` | function | `internal/app/app.go` | watcher + queue + runner orchestration |
 | `RunOnce` | function | `internal/app/app.go` | one-shot SQL execution; file or directory |
 | `runDir` | function | `internal/app/app.go` | walk directory and execute all .sql files |
@@ -82,6 +86,8 @@ make release-check
 make pre-release
 make smoke-run
 make smoke-watch
+make deps_accept_dry_run
+make deps_accept
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 go run ./cmd/ch_watch watch ./demo/ch --dry-run
 go run ./cmd/ch_watch watch ./demo/ch --dry-run --dump

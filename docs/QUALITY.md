@@ -215,11 +215,43 @@ make smoke-watch
 
 После запуска `make smoke-watch` можно сохранить `demo/ch/dev/tmp.sql`, `demo/ch/dev/query.sql` или `demo/ch/fm/task1.sql` и проверить, что rerun происходит только для измененного файла.
 
+## Dependabot release gate
+
+Для проверки того, какой Dependabot PR будет принят и какой release tag будет создан:
+
+```sh
+make deps_accept_dry_run
+```
+
+Dry-run безопасен: он показывает найденный PR, summary изменённых файлов, выбранную версию и список будущих шагов, но не делает merge, commit, push, tag и не создает worktree.
+
+Для полного workflow:
+
+```sh
+make deps_accept
+```
+
+`make deps_accept` запускает Go maintenance tool `cmd/ch_watch_maint` и выполняет полный gate:
+
+- auto-discovery последнего open PR от Dependabot или конкретный `PR=<number>`
+- local `make check-full` в временном PR worktree
+- install smoke через временный `GOBIN`
+- `run --dry-run` и watcher smoke на demo SQL file
+- ожидание GitHub PR checks
+- squash merge PR с `--match-head-commit`
+- выбор release version из `VERSION` и существующих `v*` tags
+- ожидание `master` CI
+- push `v*` tag и ожидание release workflow
+- проверка `GOPROXY=direct go install github.com/webmalex/ch_watch/cmd/ch_watch@vX.Y.Z`
+
+Если текущий `VERSION` уже поднят выше последнего release и tag для него отсутствует, команда использует этот `VERSION` без лишнего bump. Если tag уже существует, patch поднимается до первого свободного значения.
+
 ## Практический режим использования
 
 - перед commit: `make check`
 - для автоматизации локальных commits: `make hooks-install`
 - перед большим merge: `make check-full`
 - перед release: `make release-check`
+- перед принятием Dependabot PR: `make deps_accept_dry_run`, затем `make deps_accept`
 - после изменений в watcher semantics: `make smoke-watch`
 - после изменений в runner: `make smoke-run`, реальный `run --db <name>` (режим `clickhouse client`) и реальный `run` без `--db` (режим `clickhouse local`)
