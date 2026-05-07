@@ -8,6 +8,17 @@ GOFILES := $(shell find cmd internal -type f -name '*.go' -print)
 VERSION := $(file < VERSION)
 LDFLAGS := -X github.com/webmalex/ch_watch/internal/version.Version=$(VERSION)
 
+# Packages to include in coverage (excludes integration layers: cmd, depsaccept/runner, testutil)
+COVERAGE_PACKAGES := \
+	./internal/app/... \
+	./internal/cli/... \
+	./internal/model/... \
+	./internal/queue/... \
+	./internal/report/... \
+	./internal/runner/... \
+	./internal/version/... \
+	./internal/watch/...
+
 .PHONY: build install clean fmt fmt-check test test-race test-cover vet lint vuln smoke-run smoke-watch deps_accept deps_accept_dry_run release release_dry_run hooks-install hooks-update hooks-run hooks-run-push hooks-run-manual check check-full release-check pre-release
 
 build:
@@ -37,25 +48,11 @@ test-race:
 	go test -race $(GO_PACKAGES)
 
 test-cover:
-	go test -coverprofile=coverage.out -covermode=atomic $(GO_PACKAGES)
+	go test -coverprofile=coverage.out -covermode=atomic $(COVERAGE_PACKAGES)
 	go tool cover -func=coverage.out
 
-test-cover-internal:
-	@# Coverage for internal/ packages only (excludes integration layers)
-	go test -coverprofile=coverage.out -covermode=atomic \
-		./internal/app/... \
-		./internal/cli/... \
-		./internal/model/... \
-		./internal/queue/... \
-		./internal/report/... \
-		./internal/runner/... \
-		./internal/version/... \
-		./internal/watch/...
-	@echo "--- Coverage (internal only, excluding testutil, depsaccept, cmd) ---"
-	@go tool cover -func=coverage.out | tail -1
-
 vet:
-	go vet $(GO_PACKAGES)
+	go vet $(COVERAGE_PACKAGES)
 
 lint:
 	@command -v golangci-lint >/dev/null 2>&1 || { echo 'install golangci-lint: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest'; exit 1; }
