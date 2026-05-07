@@ -276,6 +276,67 @@ func TestCommandKeyIncludesArguments(t *testing.T) {
 	}
 }
 
+func TestSyncMasterRebasesWhenLocalAhead(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	versionFile := filepath.Join(root, "VERSION")
+	if err := os.WriteFile(versionFile, []byte("0.7.5\n"), 0o644); err != nil {
+		t.Fatalf("write VERSION: %v", err)
+	}
+	fake := newFake(root)
+	fake.outputs["git rev-parse --show-toplevel"] = root + "\n"
+	fake.outputs["git branch --show-current"] = "master\n"
+	fake.outputs["git status --porcelain"] = ""
+	fake.outputs["git rev-parse HEAD"] = "feedface\n"
+	fake.outputs["gh pr view 1 --json number,title,state,url,isDraft,headRefName,baseRefName,headRefOid,author,files"] = `{
+		"number": 1,
+		"title": "deps: bump something",
+		"state": "OPEN",
+		"url": "https://github.com/webmalex/ch_watch/pull/1",
+		"isDraft": false,
+		"headRefName": "dependabot/x",
+		"baseRefName": "master",
+		"headRefOid": "abc123",
+		"author": {"login": "dependabot[bot]"},
+		"files": [{"path":"go.mod","additions":1,"deletions":1}]
+	}`
+	fake.outputs["gh run list --workflow ci.yml --limit 10 --json databaseId,headSha,headBranch,status,conclusion"] = `[{
+		"databaseId": 100,
+		"headSha": "feedface",
+		"headBranch": "master",
+		"status": "completed",
+		"conclusion": "success"
+	}]`
+	fake.outputs["gh run list --workflow release.yml --limit 10 --json databaseId,headSha,headBranch,status,conclusion"] = `[{
+		"databaseId": 101,
+		"headSha": "feedface",
+		"headBranch": "v0.7.5",
+		"status": "completed",
+		"conclusion": "success"
+	}]`
+	fake.errors["git merge --ff-only origin/master"] = errors.New("cannot fast-forward")
+
+	err := Run(context.Background(), Config{
+		PR:             1,
+		VersionFile:    versionFile,
+		WorktreeParent: t.TempDir(),
+		runner:         fake,
+		watchSmoke:     func(context.Context, string, string, io.Writer, io.Writer) error { return nil },
+		sleep:          func(time.Duration) {},
+		pollLimit:      1,
+	})
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if !containsCommand(fake.calls, "git", "rebase", "origin/master") {
+		t.Fatalf("syncMaster did not fall back to rebase: %#v", fake.calls)
+	}
+	if !containsExactCommand(fake.calls, "git", "tag", "v0.7.5") {
+		t.Fatalf("pipeline did not tag v0.7.5 after rebase: %#v", fake.calls)
+	}
+}
+
 func Example_tagName() {
 	fmt.Println(tagName("0.7.5"))
 	fmt.Println(tagName("v0.7.5"))

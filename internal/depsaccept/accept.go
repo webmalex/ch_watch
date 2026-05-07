@@ -389,8 +389,18 @@ func (w workflow) syncMaster(ctx context.Context, root string) error {
 	if err := w.cfg.runner.run(ctx, gitCommand(root, "checkout", "master")); err != nil {
 		return fmt.Errorf("checkout master: %w", err)
 	}
-	if err := w.cfg.runner.run(ctx, gitCommand(root, "pull", "--ff-only", "origin", "master")); err != nil {
-		return fmt.Errorf("pull master: %w", err)
+	if err := w.cfg.runner.run(ctx, gitCommand(root, "fetch", "origin", "master")); err != nil {
+		return fmt.Errorf("fetch origin master: %w", err)
+	}
+	// Fast-forward when in sync; rebase when local is ahead of origin
+	// (e.g. a previous tool commit that hasn't been pushed yet).
+	err := w.cfg.runner.run(ctx, gitCommand(root, "merge", "--ff-only", "origin/master"))
+	if err == nil {
+		return nil
+	}
+	w.step("🔄", "local ahead of origin, rebasing")
+	if err := w.cfg.runner.run(ctx, gitCommand(root, "rebase", "origin/master")); err != nil {
+		return fmt.Errorf("rebase onto origin/master: %w", err)
 	}
 	return nil
 }
