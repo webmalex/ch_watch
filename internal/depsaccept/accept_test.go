@@ -340,7 +340,7 @@ func TestReleaseCreatesGitHubRelease(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Release returned error: %v", err)
 	}
-	if !containsExactCommand(fake.calls, "gh", "release", "create", "v0.8.0", "--target", "cafebabe", "--title", "v0.8.0", "--generate-release-notes") {
+	if !containsExactCommand(fake.calls, "gh", "release", "create", "v0.8.0", "--target", "cafebabe", "--title", "v0.8.0", "--generate-notes") {
 		t.Fatalf("Release did not create GitHub release with generate-release-notes: %#v", fake.calls)
 	}
 }

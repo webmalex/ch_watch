@@ -103,7 +103,7 @@ func (w workflow) release(ctx context.Context) error {
 
 func (w workflow) createGitHubRelease(ctx context.Context, root string, version string, targetSHA string) error {
 	tag := tagName(version)
-	args := []string{"release", "create", tag, "--target", targetSHA, "--title", tag, "--generate-release-notes"}
+	args := []string{"release", "create", tag, "--target", targetSHA, "--title", tag, "--generate-notes"}
 	if err := w.cfg.runner.run(ctx, ghCommand(root, args...)); err != nil {
 		return fmt.Errorf("create GitHub release %s: %w", tag, err)
 	}

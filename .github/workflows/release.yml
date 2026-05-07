@@ -21,7 +21,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           gh release view "$TAG" >/dev/null 2>&1 || \
-            gh release create "$TAG" --title "$TAG" --generate-release-notes --verify-tag
+            gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
 
   build:
     name: Build ${{ matrix.os }}/${{ matrix.arch }}
