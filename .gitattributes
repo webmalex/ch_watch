@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+*.go text diff=go
+*.md text diff=markdown
+*.sql text linguist-language=SQL
+
+go.sum linguist-generated
+coverage.out linguist-generated
