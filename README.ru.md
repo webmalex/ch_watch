@@ -2,6 +2,9 @@
 
 # ch_watch
 
+[![CI](https://github.com/webmalex/ch_watch/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/webmalex/ch_watch/actions/workflows/ci.yml)
+![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/webmalex/ch_watch/badges/coverage-badge.json)
+
 Нативный Go watcher для SQL debug workflows с event-driven rerun только измененного файла.
 
 Репозиторий: <https://github.com/webmalex/ch_watch>
