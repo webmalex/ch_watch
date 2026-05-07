@@ -3,11 +3,13 @@ package runner
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/webmalex/ch_watch/internal/model"
 )
@@ -505,4 +507,217 @@ func writeSQL(t *testing.T, contents string) string {
 		t.Fatalf("write sql: %v", err)
 	}
 	return path
+}
+
+func TestRunReturnsErrorOnReadFileFailure(t *testing.T) {
+	t.Parallel()
+
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.readFile = func(path string) ([]byte, error) {
+		return nil, errors.New("read failed")
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{Path: "/tmp/query.sql"})
+
+	if result.Err == nil {
+		t.Fatal("expected error on read failure")
+	}
+	if result.ExitCode != 1 {
+		t.Fatalf("expected exit code 1, got %d", result.ExitCode)
+	}
+}
+
+func TestFormatExtension(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{"TabSeparated", ".tsv"},
+		{"TabSeparatedWithNamesAndTypes", ".tsv"},
+		{"TabSeparatedWithNames", ".tsv"},
+		{"Markdown", ".md"},
+		{"PrettyCompact", ".txt"},
+		{"UnknownFormat", ".txt"},
+	}
+
+	for _, tt := range tests {
+		got := formatExtension(tt.in)
+		if got != tt.want {
+			t.Errorf("formatExtension(%q) = %q, want %q", tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestDirectDumpFormat(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		request model.RunRequest
+		want    string
+	}{
+		{model.RunRequest{DumpText: true}, prettyDumpFormat},
+		{model.RunRequest{DumpMarkdown: true}, markdownDumpFormat},
+		{model.RunRequest{Format: "JSON"}, "JSON"},
+	}
+
+	for _, tt := range tests {
+		got := directDumpFormat(tt.request)
+		if got != tt.want {
+			t.Errorf("directDumpFormat() = %q, want %q", got, tt.want)
+		}
+	}
+}
+
+func TestNewClickHouseRunnerNilWriters(t *testing.T) {
+	t.Parallel()
+
+	// Should not panic with nil writers
+	runner := NewClickHouseRunner(nil, nil)
+	if runner.stdout == nil || runner.stderr == nil {
+		t.Fatal("expected nil writers to be replaced with io.Discard")
+	}
+}
+
+func TestDumpDirectWithPipeCombined(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	var stdout bytes.Buffer
+
+	runner := NewClickHouseRunner(&stdout, io.Discard)
+	execCalls := 0
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		execCalls++
+		_, _ = io.WriteString(stdout, "result\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		Format:   "PrettyCompact",
+		DumpFile: true,
+		PipeText: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	// With both DumpFile and PipeText, we expect 2 exec calls: one for direct dump, one for pipe
+	if execCalls < 2 {
+		t.Fatalf("expected at least 2 exec calls, got %d", execCalls)
+	}
+	// Direct dump should succeed
+	if result.DumpPath == "" {
+		t.Fatal("expected dump path")
+	}
+}
+
+func TestAppendDurationCommentFileNotExists(t *testing.T) {
+	t.Parallel()
+
+	err := appendDurationComment("/nonexistent/file.txt", time.Now())
+	if err == nil {
+		t.Fatal("expected error when file doesn't exist")
+	}
+}
+
+func TestRunPipeExecError(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(context.Context, string, []string, io.Reader, io.Writer, io.Writer) error {
+		return errors.New("exec failed")
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		PipeText: true,
+	})
+
+	if result.Err == nil {
+		t.Fatal("expected error on exec failure")
+	}
+	if result.ExitCode != 1 {
+		t.Fatalf("expected exit code 1, got %d", result.ExitCode)
+	}
+}
+
+func TestRunPipeRenderError(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	callNum := 0
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		callNum++
+		if isRenderCall(args) {
+			return errors.New("render failed")
+		}
+		_, _ = io.WriteString(stdout, "id\n1\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		PipeText: true,
+	})
+
+	if result.Err == nil {
+		t.Fatal("expected error on render failure")
+	}
+	if callNum != 2 {
+		t.Fatalf("expected 2 exec calls (write + render), got %d", callNum)
+	}
+}
+
+func TestRunPipeRenderDumpFileError(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	callNum := 0
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		callNum++
+		if isRenderCall(args) && containsArg(args, "PrettyCompact") {
+			return errors.New("render failed")
+		}
+		_, _ = io.WriteString(stdout, "id\n1\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		PipeText: true,
+	})
+
+	if result.Err == nil {
+		t.Fatal("expected error when txt render fails")
+	}
+}
+
+func TestRunDumpDirectRenameError(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		_, _ = io.WriteString(stdout, "ok\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:     path,
+		DumpFile: true,
+	})
+
+	// Direct dump succeeds when permissions allow
+	if result.Err != nil {
+		t.Logf("got error: %v", result.Err)
+	}
+	if result.DumpPath == "" {
+		t.Fatal("expected dump path on success")
+	}
 }

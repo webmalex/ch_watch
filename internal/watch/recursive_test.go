@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/webmalex/ch_watch/internal/model"
 	"github.com/webmalex/ch_watch/internal/queue"
 	"github.com/webmalex/ch_watch/internal/testutil"
@@ -187,6 +188,120 @@ func mustWriteSQL(t *testing.T, root string, relative string, contents string) s
 		t.Fatalf("write file: %v", err)
 	}
 	return path
+}
+
+func TestOpNameNoMatch(t *testing.T) {
+	t.Parallel()
+
+	got := opName(fsnotify.Op(0))
+	if got == "" {
+		t.Fatal("expected non-empty fallback string for zero op")
+	}
+}
+
+func TestOpNameCombined(t *testing.T) {
+	t.Parallel()
+
+	got := opName(fsnotify.Create | fsnotify.Write)
+	if got != "CREATE+WRITE" {
+		t.Fatalf("expected CREATE+WRITE, got %q", got)
+	}
+}
+
+func TestOpNameAllOps(t *testing.T) {
+	t.Parallel()
+
+	got := opName(fsnotify.Create | fsnotify.Write | fsnotify.Chmod | fsnotify.Rename | fsnotify.Remove)
+	if got != "CREATE+WRITE+CHMOD+RENAME+REMOVE" {
+		t.Fatalf("unexpected combined op name: %q", got)
+	}
+}
+
+func TestHandleEventNonSQLFile(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	r, err := NewRecursive(root)
+	if err != nil {
+		t.Fatalf("new watcher: %v", err)
+	}
+	t.Cleanup(func() { _ = r.Close() })
+
+	called := false
+	ev := fsnotify.Event{Name: filepath.Join(root, "notes.txt"), Op: fsnotify.Write}
+	if err := r.handleEvent(ev, func(Event) { called = true }); err != nil {
+		t.Fatalf("handleEvent: %v", err)
+	}
+	if called {
+		t.Fatal("expected no callback for non-SQL file")
+	}
+}
+
+func TestHandleEventFileOutsideRoot(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	outside := filepath.Join(filepath.Dir(root), "outside.sql")
+	if err := os.WriteFile(outside, []byte("SELECT 1;\n"), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Remove(outside) })
+
+	r, err := NewRecursive(root)
+	if err != nil {
+		t.Fatalf("new watcher: %v", err)
+	}
+	t.Cleanup(func() { _ = r.Close() })
+
+	called := false
+	ev := fsnotify.Event{Name: outside, Op: fsnotify.Write}
+	if err := r.handleEvent(ev, func(Event) { called = true }); err != nil {
+		t.Fatalf("handleEvent: %v", err)
+	}
+	if called {
+		t.Fatal("expected no callback for file outside root")
+	}
+}
+
+func TestHandleEventRemoveDir(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	subDir := filepath.Join(root, "dev")
+	if err := os.MkdirAll(subDir, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+
+	r, err := NewRecursive(root)
+	if err != nil {
+		t.Fatalf("new watcher: %v", err)
+	}
+	t.Cleanup(func() { _ = r.Close() })
+
+	subDirClean := NormalizePath(subDir)
+	r.mu.Lock()
+	if _, ok := r.paths[subDirClean]; !ok {
+		r.mu.Unlock()
+		t.Fatalf("expected %q in paths before remove", subDirClean)
+	}
+	before := len(r.paths)
+	r.mu.Unlock()
+
+	called := false
+	ev := fsnotify.Event{Name: subDir, Op: fsnotify.Remove}
+	if err := r.handleEvent(ev, func(Event) { called = true }); err != nil {
+		t.Fatalf("handleEvent: %v", err)
+	}
+	if called {
+		t.Fatal("expected no callback for Remove op on directory")
+	}
+
+	r.mu.Lock()
+	after := len(r.paths)
+	r.mu.Unlock()
+	if after >= before {
+		t.Fatalf("expected path removed from watcher.paths, before=%d after=%d", before, after)
+	}
 }
 
 func assertPaths(t *testing.T, got []string, want []string) {
