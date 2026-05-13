@@ -65,6 +65,13 @@ demo/                # smoke-test SQL fixtures
 - Version is stored in the `VERSION` file at project root; bump it there before release. `make build`/`make install` inject it via `-ldflags`.
 - **Always bump VERSION** when making code changes (features, fixes, refactors) — even small ones. Follow semver: patch for fixes, minor for features.
 - **After every completed task**: update documentation (README, docs/, CODE MAP, COMMANDS in AGENTS.md if flags/structure changed) and make a git commit. Mandatory — do not wait for explicit instruction.
+- **Post-task checklist** (always, no exceptions):
+  1. `make check-full` — tests + lint + build must pass.
+  2. Git commit with conventional commit message.
+  3. `make build && make install` — build and install the binary.
+  4. Tell user to verify the installed binary works (`./bin/ch_watch version` or relevant command).
+  5. Offer to create a GitHub release (`make pre-release` creates tag + push + `gh release create`). Explain that release **includes push to origin** — user does not need to push separately.
+- **Release flow**: `make pre-release` pushes the commit + tag to origin, then `gh release create` publishes the release with auto-generated notes. Push is part of the release step, not a separate step.
 
 ## ANTI-PATTERNS (THIS PROJECT)
 - Do not move core behavior back into `make` or shell wrappers.
