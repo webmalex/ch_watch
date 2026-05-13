@@ -70,8 +70,8 @@ demo/                # smoke-test SQL fixtures
   2. Git commit with conventional commit message.
   3. `make build && make install` — build and install the binary.
   4. Tell user to verify the installed binary works (`./bin/ch_watch version` or relevant command).
-  5. Offer to create a GitHub release (`make pre-release` creates tag + push + `gh release create`). Explain that release **includes push to origin** — user does not need to push separately.
-- **Release flow**: `make pre-release` pushes the commit + tag to origin, then `gh release create` publishes the release with auto-generated notes. Push is part of the release step, not a separate step.
+  5. Offer to create a GitHub release via `make release`. Explain that `make release` does **push + tag + GitHub release + waits for CI + verifies install** — no separate push needed.
+- **Release flow**: `make release` runs `ch_watch_maint release` which: syncs master → checks VERSION → commits+pushes if bumped → waits for CI → creates GitHub release with auto-notes → waits for release workflow → verifies `go install`. Single command, no manual steps.
 
 ## ANTI-PATTERNS (THIS PROJECT)
 - Do not move core behavior back into `make` or shell wrappers.
