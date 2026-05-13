@@ -72,6 +72,11 @@ func (w workflow) release(ctx context.Context) error {
 		if err := w.commitAndPushVersion(ctx, root, releaseVersion); err != nil {
 			return err
 		}
+	} else {
+		w.step("🚀", "pushing master to origin")
+		if err := w.cfg.runner.run(ctx, gitCommand(root, "push", "origin", "master")); err != nil {
+			return fmt.Errorf("git push master: %w", err)
+		}
 	}
 
 	headSHA, err := w.gitOutput(ctx, root, "rev-parse", "HEAD")

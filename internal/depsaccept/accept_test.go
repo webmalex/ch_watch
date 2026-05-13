@@ -235,6 +235,8 @@ func newFake(root string) *fakeRunner {
 	fake.outputs["git tag --list v0.7.5"] = ""
 	fake.outputs["git tag --list v0.7.6"] = ""
 	fake.outputs["git tag --list v0.7.7"] = ""
+	fake.outputs["git tag --list v0.8.0"] = ""
+	fake.outputs["git tag --list v0.9.0"] = ""
 	_ = root
 	return fake
 }
@@ -342,6 +344,9 @@ func TestReleaseCreatesGitHubRelease(t *testing.T) {
 	}
 	if !containsExactCommand(fake.calls, "gh", "release", "create", "v0.8.0", "--target", "cafebabe", "--title", "v0.8.0", "--generate-notes") {
 		t.Fatalf("Release did not create GitHub release with generate-release-notes: %#v", fake.calls)
+	}
+	if !containsCommand(fake.calls, "git", "push", "origin", "master") {
+		t.Fatalf("Release did not push master to origin: %#v", fake.calls)
 	}
 }
 
