@@ -66,7 +66,7 @@ func (r ClickHouseRunner) Run(ctx context.Context, request model.RunRequest) mod
 		client = "clickhouse"
 	}
 
-	directDump := request.DumpFile || request.DumpText || request.DumpMarkdown
+	directDump := request.DumpFile || request.DumpTSV || request.DumpText || request.DumpMarkdown
 	needsPipe := request.PipeText || request.PipeMarkdown
 
 	switch {
@@ -244,6 +244,10 @@ func DumpFilePath(sqlPath string) string {
 	return dumpPath(sqlPath, ".tsv")
 }
 
+func TSVDumpFilePath(sqlPath string) string {
+	return dumpPath(sqlPath, ".tsv")
+}
+
 func TextDumpFilePath(sqlPath string) string {
 	return dumpPath(sqlPath, ".txt")
 }
@@ -258,6 +262,9 @@ func dumpPath(sqlPath string, extension string) string {
 }
 
 func directDumpFormat(request model.RunRequest) string {
+	if request.DumpTSV {
+		return canonicalDumpFormat
+	}
 	if request.DumpMarkdown {
 		return markdownDumpFormat
 	}

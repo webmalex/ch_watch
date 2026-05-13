@@ -288,6 +288,54 @@ func TestDumpMarkdownWritesDirectly(t *testing.T) {
 	}
 }
 
+func TestDumpTSVWritesDirectly(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	var stdout bytes.Buffer
+	var calls [][]string
+
+	runner := NewClickHouseRunner(&stdout, io.Discard)
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		calls = append(calls, append([]string(nil), args...))
+		_, _ = io.WriteString(stdout, "col\tval\n1\ta\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:    path,
+		Format:  "PrettyCompact",
+		DumpTSV: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+
+	want := TSVDumpFilePath(path)
+	if result.DumpPath != want {
+		t.Fatalf("dump path: got %q, want %q", result.DumpPath, want)
+	}
+	if len(calls) != 1 {
+		t.Fatalf("expected single query call, got %d", len(calls))
+	}
+	if !containsArg(calls[0], "TabSeparatedWithNames") {
+		t.Fatalf("--dump-tsv should use TabSeparatedWithNames format: %#v", calls[0])
+	}
+
+	data, err := os.ReadFile(result.DumpPath)
+	if err != nil {
+		t.Fatalf("read dump: %v", err)
+	}
+	content := string(data)
+	if !strings.HasPrefix(content, "col\tval\n1\ta\n") {
+		t.Fatalf("unexpected dump content: %q", content)
+	}
+	if !strings.Contains(content, "-- ") {
+		t.Fatalf("dump missing duration comment: %q", content)
+	}
+}
+
 func TestPipeTSVRendersTextAndMarkdown(t *testing.T) {
 	t.Parallel()
 
@@ -468,6 +516,9 @@ func TestTextAndMarkdownDumpFilePaths(t *testing.T) {
 	t.Parallel()
 
 	path := "/tmp/query.sql"
+	if got := TSVDumpFilePath(path); got != "/tmp/query.tsv" {
+		t.Fatalf("unexpected tsv path: %q", got)
+	}
 	if got := TextDumpFilePath(path); got != "/tmp/query.txt" {
 		t.Fatalf("unexpected text path: %q", got)
 	}
@@ -557,6 +608,7 @@ func TestDirectDumpFormat(t *testing.T) {
 		request model.RunRequest
 		want    string
 	}{
+		{model.RunRequest{DumpTSV: true}, canonicalDumpFormat},
 		{model.RunRequest{DumpText: true}, prettyDumpFormat},
 		{model.RunRequest{DumpMarkdown: true}, markdownDumpFormat},
 		{model.RunRequest{Format: "JSON"}, "JSON"},

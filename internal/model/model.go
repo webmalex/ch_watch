@@ -23,6 +23,7 @@ type RunRequest struct {
 	Format       string
 	DryRun       bool
 	DumpFile     bool
+	DumpTSV      bool
 	DumpText     bool
 	DumpMarkdown bool
 	PipeText     bool

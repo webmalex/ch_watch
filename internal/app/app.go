@@ -28,6 +28,7 @@ type WatchConfig struct {
 	PrintEvents  bool
 	DryRun       bool
 	DumpFile     bool
+	DumpTSV      bool
 	DumpText     bool
 	DumpMarkdown bool
 	PipeText     bool
@@ -41,6 +42,7 @@ type RunConfig struct {
 	Format       string
 	DryRun       bool
 	DumpFile     bool
+	DumpTSV      bool
 	DumpText     bool
 	DumpMarkdown bool
 	PipeText     bool
@@ -58,6 +60,7 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 		Format:       cfg.Format,
 		DryRun:       cfg.DryRun,
 		DumpFile:     cfg.DumpFile,
+		DumpTSV:      cfg.DumpTSV,
 		DumpText:     cfg.DumpText,
 		DumpMarkdown: cfg.DumpMarkdown,
 		PipeText:     cfg.PipeText,
@@ -89,6 +92,7 @@ func RunWatch(ctx context.Context, cfg WatchConfig, stdout io.Writer, stderr io.
 			Format:       runCfg.Format,
 			DryRun:       cfg.DryRun,
 			DumpFile:     runCfg.DumpFile,
+			DumpTSV:      runCfg.DumpTSV,
 			DumpText:     runCfg.DumpText,
 			DumpMarkdown: runCfg.DumpMarkdown,
 			PipeText:     runCfg.PipeText,
@@ -153,6 +157,7 @@ func runFile(ctx context.Context, path string, cfg RunConfig, run runner.Runner,
 		Format:       cfg.Format,
 		DryRun:       cfg.DryRun,
 		DumpFile:     cfg.DumpFile,
+		DumpTSV:      cfg.DumpTSV,
 		DumpText:     cfg.DumpText,
 		DumpMarkdown: cfg.DumpMarkdown,
 		PipeText:     cfg.PipeText,
@@ -199,6 +204,7 @@ func runDir(ctx context.Context, root string, cfg RunConfig, run runner.Runner, 
 			Format:       cfg.Format,
 			DryRun:       cfg.DryRun,
 			DumpFile:     cfg.DumpFile,
+			DumpTSV:      cfg.DumpTSV,
 			DumpText:     cfg.DumpText,
 			DumpMarkdown: cfg.DumpMarkdown,
 			PipeText:     cfg.PipeText,

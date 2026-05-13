@@ -215,7 +215,7 @@ func TestRunHelpShowsPath(t *testing.T) {
 	if !strings.Contains(output, "-db") {
 		t.Fatalf("run help missing --db: %q", output)
 	}
-	if !strings.Contains(output, "-dump-txt") || !strings.Contains(output, "-dump-md") {
+	if !strings.Contains(output, "-dump-tsv") || !strings.Contains(output, "-dump-txt") || !strings.Contains(output, "-dump-md") {
 		t.Fatalf("run help missing dump flags: %q", output)
 	}
 	if !strings.Contains(output, "-pipe-txt") || !strings.Contains(output, "-pipe-md") {
@@ -227,11 +227,11 @@ func TestRunDumpRenderFlags(t *testing.T) {
 	t.Parallel()
 
 	path := writeSQLFile(t, "query.sql")
-	cfg, err := parseRun([]string{path, "--dump-txt", "--dump-md"})
+	cfg, err := parseRun([]string{path, "--dump-tsv", "--dump-txt", "--dump-md"})
 	if err != nil {
 		t.Fatalf("parse run: %v", err)
 	}
-	if !cfg.DumpText || !cfg.DumpMarkdown {
+	if !cfg.DumpTSV || !cfg.DumpText || !cfg.DumpMarkdown {
 		t.Fatalf("expected dump flags, got %#v", cfg)
 	}
 }

@@ -68,6 +68,7 @@ func newWatchFlags() (*flag.FlagSet, *app.WatchConfig) {
 	fs.BoolVar(&cfg.PrintEvents, "print-events", false, "print normalized events")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
 	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result directly to file in --format (default PrettyCompact .txt)")
+	fs.BoolVar(&cfg.DumpTSV, "dump-tsv", false, "dump query result as TabSeparatedWithNames .tsv")
 	fs.BoolVar(&cfg.DumpText, "dump-txt", false, "shorthand for --dump with PrettyCompact .txt")
 	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "shorthand for --dump with Markdown .md")
 	fs.BoolVar(&cfg.PipeText, "pipe-txt", false, "TSV pipeline: render PrettyCompact .txt from canonical .tsv")
@@ -100,6 +101,7 @@ func newRunFlags() (*flag.FlagSet, *app.RunConfig) {
 	fs.StringVar(&cfg.Format, "format", "PrettyCompact", "output format")
 	fs.BoolVar(&cfg.DryRun, "dry-run", false, "print what would run")
 	fs.BoolVar(&cfg.DumpFile, "dump", false, "dump query result directly to file in --format (default PrettyCompact .txt)")
+	fs.BoolVar(&cfg.DumpTSV, "dump-tsv", false, "dump query result as TabSeparatedWithNames .tsv")
 	fs.BoolVar(&cfg.DumpText, "dump-txt", false, "shorthand for --dump with PrettyCompact .txt")
 	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "shorthand for --dump with Markdown .md")
 	fs.BoolVar(&cfg.PipeText, "pipe-txt", false, "TSV pipeline: render PrettyCompact .txt from canonical .tsv")
@@ -131,7 +133,7 @@ func reorderRunArgs(args []string) ([]string, error) {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
-		case arg == "--dry-run" || arg == "--dump" || arg == "--dump-txt" || arg == "--dump-md" || arg == "--pipe-txt" || arg == "--pipe-md":
+		case arg == "--dry-run" || arg == "--dump" || arg == "--dump-tsv" || arg == "--dump-txt" || arg == "--dump-md" || arg == "--pipe-txt" || arg == "--pipe-md":
 			flagArgs = append(flagArgs, arg)
 		case arg == "--db" || arg == "--client" || arg == "--format":
 			if i+1 >= len(args) {

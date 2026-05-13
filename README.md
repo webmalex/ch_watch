@@ -54,6 +54,7 @@ go run ./cmd/ch_watch watch ./demo/ch --dry-run
 | `--print-events` | Print normalized watcher events to stderr |
 | `--dry-run` | Print `RUN`/`OK` without executing SQL |
 | `--dump` | Save query result to file in `--format` (`.txt`) |
+| `--dump-tsv` | Save query result as TabSeparatedWithNames `.tsv` |
 | `--dump-txt` | Save query result as PrettyCompact `.txt` |
 | `--dump-md` | Save query result as Markdown `.md` |
 | `--pipe-txt` | Render `.txt` from canonical `.tsv` without re-running the query |
