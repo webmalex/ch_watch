@@ -336,6 +336,75 @@ func TestDumpTSVWritesDirectly(t *testing.T) {
 	}
 }
 
+func TestDumpTSVOmitsDurationWhenRequested(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, _ []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		_, _ = io.WriteString(stdout, "col\tval\n1\ta\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:       path,
+		Format:     "PrettyCompact",
+		DumpTSV:    true,
+		NoDuration: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	data, err := os.ReadFile(result.DumpPath)
+	if err != nil {
+		t.Fatalf("read dump: %v", err)
+	}
+	content := string(data)
+	if content != "col\tval\n1\ta\n" {
+		t.Fatalf("dump content: got %q", content)
+	}
+	if strings.Contains(content, "-- ") {
+		t.Fatalf("dump should not include duration comment: %q", content)
+	}
+}
+
+func TestDumpTSVStripTotalsKeepsDurationWhenEnabled(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1 GROUP BY WITH TOTALS;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, _ []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		_, _ = io.WriteString(stdout, "id\tval\n1\ta\n2\tb\n\n0\tab\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:        path,
+		Format:      "PrettyCompact",
+		DumpTSV:     true,
+		StripTotals: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	data, err := os.ReadFile(result.DumpPath)
+	if err != nil {
+		t.Fatalf("read dump: %v", err)
+	}
+	content := string(data)
+	if !strings.HasPrefix(content, "id\tval\n1\ta\n2\tb\n") {
+		t.Fatalf("dump content missing data rows: %q", content)
+	}
+	if strings.Contains(content, "0\tab") {
+		t.Fatalf("dump should not include totals row: %q", content)
+	}
+	if !strings.Contains(content, "-- ") {
+		t.Fatalf("dump should keep duration comment unless disabled: %q", content)
+	}
+}
+
 func TestPipeTSVRendersTextAndMarkdown(t *testing.T) {
 	t.Parallel()
 
@@ -391,6 +460,44 @@ func TestPipeTSVRendersTextAndMarkdown(t *testing.T) {
 	}
 }
 
+func TestPipeOmitsDurationWhenRequested(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1;\n")
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, args []string, _ io.Reader, stdout io.Writer, _ io.Writer) error {
+		switch {
+		case !isRenderCall(args):
+			_, _ = io.WriteString(stdout, "id\n1\n")
+		default:
+			_, _ = io.WriteString(stdout, "pretty\n")
+		}
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:       path,
+		Format:     "PrettyCompact",
+		PipeText:   true,
+		NoDuration: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	txtData, err := os.ReadFile(TextDumpFilePath(path))
+	if err != nil {
+		t.Fatalf("read txt: %v", err)
+	}
+	content := string(txtData)
+	if content != "pretty\n" {
+		t.Fatalf("txt content: got %q", content)
+	}
+	if strings.Contains(content, "-- ") {
+		t.Fatalf("txt content should not include duration comment: %q", content)
+	}
+}
+
 func TestPipeWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
 	t.Parallel()
 
@@ -437,6 +544,49 @@ func TestPipeWithTotalsStripsExtraRowsBeforeRender(t *testing.T) {
 	for i, input := range renderInputs {
 		if input != wantRender {
 			t.Fatalf("render input[%d]: got %q, want %q", i, input, wantRender)
+		}
+	}
+}
+
+func TestPipeStripTotalsUpdatesSavedTSV(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQL(t, "SELECT 1 GROUP BY WITH TOTALS;\n")
+	var renderInputs []string
+
+	runner := NewClickHouseRunner(io.Discard, io.Discard)
+	runner.exec = func(_ context.Context, _ string, args []string, stdin io.Reader, stdout io.Writer, _ io.Writer) error {
+		if !isRenderCall(args) {
+			_, _ = io.WriteString(stdout, "id\tval\n1\ta\n2\tb\n\n0\tab\n")
+			return nil
+		}
+		body, _ := io.ReadAll(stdin)
+		renderInputs = append(renderInputs, string(body))
+		_, _ = io.WriteString(stdout, "pretty\n")
+		return nil
+	}
+
+	result := runner.Run(context.Background(), model.RunRequest{
+		Path:        path,
+		Format:      "PrettyCompact",
+		PipeText:    true,
+		StripTotals: true,
+	})
+
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	tsvData, err := os.ReadFile(DumpFilePath(path))
+	if err != nil {
+		t.Fatalf("read tsv: %v", err)
+	}
+	want := "id\tval\n1\ta\n2\tb\n"
+	if string(tsvData) != want {
+		t.Fatalf("tsv content: got %q, want %q", string(tsvData), want)
+	}
+	for i, input := range renderInputs {
+		if input != want {
+			t.Fatalf("render input[%d]: got %q, want %q", i, input, want)
 		}
 	}
 }

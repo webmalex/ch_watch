@@ -129,14 +129,32 @@ func (r ClickHouseRunner) runDumpDirect(ctx context.Context, request model.RunRe
 	result.Duration = time.Since(result.StartedAt)
 	result.Stderr = strings.TrimSpace(stderrBuf.String())
 
+	closeErr := dumpFile.Close()
 	if err == nil {
-		_, _ = fmt.Fprintf(dumpFile, "\n-- %s\n", result.Duration.Round(time.Millisecond))
+		err = closeErr
+		result.Err = err
+		result.ExitCode = exitCode(err)
 	}
-	_ = dumpFile.Close()
 
 	if err != nil {
 		_ = os.Remove(tmpPath)
 		return result
+	}
+	if request.StripTotals {
+		if stripErr := stripFileAfterBlankLine(tmpPath); stripErr != nil {
+			_ = os.Remove(tmpPath)
+			result.Err = stripErr
+			result.ExitCode = 1
+			return result
+		}
+	}
+	if !request.NoDuration {
+		if appendErr := appendDuration(tmpPath, result.Duration); appendErr != nil {
+			_ = os.Remove(tmpPath)
+			result.Err = appendErr
+			result.ExitCode = 1
+			return result
+		}
 	}
 	if err = os.Rename(tmpPath, outPath); err != nil {
 		_ = os.Remove(tmpPath)
@@ -191,6 +209,17 @@ func (r ClickHouseRunner) runPipe(ctx context.Context, request model.RunRequest,
 		return result
 	}
 
+	if request.StripTotals {
+		if stripErr := stripFileAfterBlankLine(tsvPath); stripErr != nil {
+			_ = os.Remove(tsvPath)
+			result.Err = stripErr
+			result.ExitCode = 1
+			result.Duration = time.Since(started)
+			result.Stderr = strings.TrimSpace(stderrBuf.String())
+			return result
+		}
+	}
+
 	dumpPaths := []string{tsvPath}
 	if err = r.renderDump(ctx, client, tsvPath, request.Format, r.stdout, r.stderr); err != nil {
 		result.Err = err
@@ -212,8 +241,17 @@ func (r ClickHouseRunner) runPipe(ctx context.Context, request model.RunRequest,
 			result.DumpPaths = dumpPaths
 			return result
 		}
-		if appendErr := appendDurationComment(txtPath, started); appendErr == nil {
+		if request.NoDuration {
 			dumpPaths = append(dumpPaths, txtPath)
+		} else if appendErr := appendDurationComment(txtPath, started); appendErr == nil {
+			dumpPaths = append(dumpPaths, txtPath)
+		} else {
+			result.Err = appendErr
+			result.ExitCode = 1
+			result.Duration = time.Since(started)
+			result.DumpPath = tsvPath
+			result.DumpPaths = dumpPaths
+			return result
 		}
 	}
 	if request.PipeMarkdown {
@@ -226,8 +264,17 @@ func (r ClickHouseRunner) runPipe(ctx context.Context, request model.RunRequest,
 			result.DumpPaths = dumpPaths
 			return result
 		}
-		if appendErr := appendDurationComment(mdPath, started); appendErr == nil {
+		if request.NoDuration {
 			dumpPaths = append(dumpPaths, mdPath)
+		} else if appendErr := appendDurationComment(mdPath, started); appendErr == nil {
+			dumpPaths = append(dumpPaths, mdPath)
+		} else {
+			result.Err = appendErr
+			result.ExitCode = 1
+			result.Duration = time.Since(started)
+			result.DumpPath = tsvPath
+			result.DumpPaths = dumpPaths
+			return result
 		}
 	}
 
@@ -319,14 +366,26 @@ func (r ClickHouseRunner) renderDump(ctx context.Context, client string, tsvPath
 
 func stripAfterBlankLine(r io.Reader) *bytes.Reader {
 	raw, _ := io.ReadAll(r)
-	cut := len(raw)
-	for i := 0; i+1 < len(raw); i++ {
-		if raw[i] == '\n' && raw[i+1] == '\n' {
+	return bytes.NewReader(stripBytesAfterBlankLine(raw))
+}
+
+func stripFileAfterBlankLine(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, stripBytesAfterBlankLine(data), 0o644)
+}
+
+func stripBytesAfterBlankLine(data []byte) []byte {
+	cut := len(data)
+	for i := 0; i+1 < len(data); i++ {
+		if data[i] == '\n' && data[i+1] == '\n' {
 			cut = i + 1
 			break
 		}
 	}
-	return bytes.NewReader(raw[:cut])
+	return data[:cut]
 }
 
 func (r ClickHouseRunner) renderDumpFile(ctx context.Context, client string, tsvPath string, outputPath string, format string) (string, error) {
@@ -352,11 +411,15 @@ func (r ClickHouseRunner) renderDumpFile(ctx context.Context, client string, tsv
 }
 
 func appendDurationComment(path string, startedAt time.Time) error {
+	return appendDuration(path, time.Since(startedAt))
+}
+
+func appendDuration(path string, duration time.Duration) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND, 0)
 	if err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(f, "\n-- %s\n", time.Since(startedAt).Round(time.Millisecond))
+	_, err = fmt.Fprintf(f, "\n-- %s\n", duration.Round(time.Millisecond))
 	_ = f.Close()
 	return err
 }
