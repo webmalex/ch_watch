@@ -149,7 +149,7 @@ func TestHelpShowsCommands(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	output := buf.String()
-	for _, want := range []string{"ch_watch", "Commands:", "watch", "run", "version"} {
+	for _, want := range []string{"ch_watch", "Commands:", "watch", "run", "version", "github.com/webmalex/ch_watch"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("help missing %q: %q", want, output)
 		}

@@ -167,6 +167,7 @@ func isHelp(args []string) bool {
 func writeHelp(w io.Writer) {
 	_, _ = fmt.Fprintf(w, "ch_watch %s\n\n", version.Current())
 	_, _ = fmt.Fprintln(w, "SQL file watcher for ClickHouse debug workflows.")
+	_, _ = fmt.Fprintf(w, "Repository: %s\n", version.RepositoryURL)
 	_, _ = fmt.Fprintln(w)
 	_, _ = fmt.Fprintln(w, "Commands:")
 	_, _ = fmt.Fprintln(w, "  watch    watch a directory and rerun SQL on changes")

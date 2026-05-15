@@ -2,6 +2,9 @@ package version
 
 import "runtime/debug"
 
+// RepositoryURL is the canonical project repository URL.
+const RepositoryURL = "https://github.com/webmalex/ch_watch"
+
 // Version is set at build time via -ldflags.
 // Default "dev" is used for go run and go install without flags.
 var Version = "dev"
