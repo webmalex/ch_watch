@@ -28,6 +28,8 @@ type RunRequest struct {
 	DumpMarkdown bool
 	PipeText     bool
 	PipeMarkdown bool
+	NoDuration   bool
+	StripTotals  bool
 }
 
 type RunResult struct {

@@ -165,7 +165,7 @@ func TestWatchHelpShowsFlags(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	output := buf.String()
-	for _, want := range []string{"Usage:", "[root]", "-db", "-format", "-dump", "-pipe-txt", "-pipe-md", "-dry-run", "-debounce", "-suppress"} {
+	for _, want := range []string{"Usage:", "[root]", "-db", "-format", "-dump", "-pipe-txt", "-pipe-md", "-no-duration", "-strip-totals", "-dry-run", "-debounce", "-suppress"} {
 		if !strings.Contains(output, want) {
 			t.Fatalf("watch help missing %q: %q", want, output)
 		}
@@ -221,18 +221,34 @@ func TestRunHelpShowsPath(t *testing.T) {
 	if !strings.Contains(output, "-pipe-txt") || !strings.Contains(output, "-pipe-md") {
 		t.Fatalf("run help missing pipe flags: %q", output)
 	}
+	if !strings.Contains(output, "-no-duration") || !strings.Contains(output, "-strip-totals") {
+		t.Fatalf("run help missing dump control flags: %q", output)
+	}
 }
 
 func TestRunDumpRenderFlags(t *testing.T) {
 	t.Parallel()
 
 	path := writeSQLFile(t, "query.sql")
-	cfg, err := parseRun([]string{path, "--dump-tsv", "--dump-txt", "--dump-md"})
+	cfg, err := parseRun([]string{path, "--dump-tsv", "--dump-txt", "--dump-md", "--no-duration", "--strip-totals"})
 	if err != nil {
 		t.Fatalf("parse run: %v", err)
 	}
-	if !cfg.DumpTSV || !cfg.DumpText || !cfg.DumpMarkdown {
+	if !cfg.DumpTSV || !cfg.DumpText || !cfg.DumpMarkdown || !cfg.NoDuration || !cfg.StripTotals {
 		t.Fatalf("expected dump flags, got %#v", cfg)
+	}
+}
+
+func TestRunDumpControlFlagsAfterPath(t *testing.T) {
+	t.Parallel()
+
+	path := writeSQLFile(t, "query.sql")
+	cfg, err := parseRun([]string{path, "--no-duration", "--strip-totals", "--dump-tsv"})
+	if err != nil {
+		t.Fatalf("parse run: %v", err)
+	}
+	if !cfg.NoDuration || !cfg.StripTotals || !cfg.DumpTSV {
+		t.Fatalf("expected reordered dump control flags, got %#v", cfg)
 	}
 }
 

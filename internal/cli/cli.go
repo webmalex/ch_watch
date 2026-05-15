@@ -73,6 +73,8 @@ func newWatchFlags() (*flag.FlagSet, *app.WatchConfig) {
 	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "shorthand for --dump with Markdown .md")
 	fs.BoolVar(&cfg.PipeText, "pipe-txt", false, "TSV pipeline: render PrettyCompact .txt from canonical .tsv")
 	fs.BoolVar(&cfg.PipeMarkdown, "pipe-md", false, "TSV pipeline: render Markdown .md from canonical .tsv")
+	fs.BoolVar(&cfg.NoDuration, "no-duration", false, "omit execution duration comment from dump files")
+	fs.BoolVar(&cfg.StripTotals, "strip-totals", false, "strip WITH TOTALS rows (after first blank line) from saved dump files")
 	return fs, cfg
 }
 
@@ -106,6 +108,8 @@ func newRunFlags() (*flag.FlagSet, *app.RunConfig) {
 	fs.BoolVar(&cfg.DumpMarkdown, "dump-md", false, "shorthand for --dump with Markdown .md")
 	fs.BoolVar(&cfg.PipeText, "pipe-txt", false, "TSV pipeline: render PrettyCompact .txt from canonical .tsv")
 	fs.BoolVar(&cfg.PipeMarkdown, "pipe-md", false, "TSV pipeline: render Markdown .md from canonical .tsv")
+	fs.BoolVar(&cfg.NoDuration, "no-duration", false, "omit execution duration comment from dump files")
+	fs.BoolVar(&cfg.StripTotals, "strip-totals", false, "strip WITH TOTALS rows (after first blank line) from saved dump files")
 	return fs, cfg
 }
 
@@ -133,7 +137,7 @@ func reorderRunArgs(args []string) ([]string, error) {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
-		case arg == "--dry-run" || arg == "--dump" || arg == "--dump-tsv" || arg == "--dump-txt" || arg == "--dump-md" || arg == "--pipe-txt" || arg == "--pipe-md":
+		case arg == "--dry-run" || arg == "--dump" || arg == "--dump-tsv" || arg == "--dump-txt" || arg == "--dump-md" || arg == "--pipe-txt" || arg == "--pipe-md" || arg == "--no-duration" || arg == "--strip-totals":
 			flagArgs = append(flagArgs, arg)
 		case arg == "--db" || arg == "--client" || arg == "--format":
 			if i+1 >= len(args) {
