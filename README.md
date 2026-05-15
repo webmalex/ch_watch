@@ -59,6 +59,8 @@ go run ./cmd/ch_watch watch ./demo/ch --dry-run
 | `--dump-md` | Save query result as Markdown `.md` |
 | `--pipe-txt` | Render `.txt` from canonical `.tsv` without re-running the query |
 | `--pipe-md` | Render `.md` from canonical `.tsv` without re-running the query |
+| `--no-duration` | Omit the execution duration comment from saved dump files |
+| `--strip-totals` | Strip ClickHouse `WITH TOTALS` rows from saved dump files after the first blank line |
 
 Without `--db`, SQL runs through `clickhouse local`. With `--db`, it connects via `clickhouse client --database <db>`.
 

@@ -17,7 +17,7 @@
 - queue изменения, пока текущий SQL file еще выполняется;
 - запускать SQL через `clickhouse` по `stdin`, автоматически выбирая `client` или `local` режим;
 - работать в `--dry-run` mode для smoke tests без ClickHouse;
-- дампить результат запроса в файлы рядом с SQL файлом: `--dump`/`--dump-txt` (прямой dump в PrettyCompact `.txt`), `--dump-md` (прямой dump в Markdown `.md`), `--pipe-txt`/`--pipe-md` (TSV pipeline → render `.txt`/`.md`); во все файлы добавляется комментарий с длительностью запроса.
+- дампить результат запроса в файлы рядом с SQL файлом: `--dump`/`--dump-txt` (прямой dump в PrettyCompact `.txt`), `--dump-md` (прямой dump в Markdown `.md`), `--pipe-txt`/`--pipe-md` (TSV pipeline → render `.txt`/`.md`); комментарий с длительностью можно отключить через `--no-duration`, а строки `WITH TOTALS` в сохранённых dump файлах — через `--strip-totals`.
 
 ## Быстрый старт
 
@@ -155,6 +155,8 @@ make hooks-install
 - `--dump-md`: shorthand для `--dump` с Markdown → `.md`
 - `--pipe-txt`: TSV pipeline → render PrettyCompact `.txt` из canonical `.tsv` (может терять precision floats)
 - `--pipe-md`: TSV pipeline → render Markdown `.md` из canonical `.tsv` (может терять precision floats)
+- `--no-duration`: не добавлять комментарий с длительностью выполнения в сохранённые dump файлы
+- `--strip-totals`: удалить строки `WITH TOTALS` из сохранённых dump файлов после первой пустой строки
 
 ## Версия
 

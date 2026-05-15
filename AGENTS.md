@@ -100,6 +100,7 @@ go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql
 go run ./cmd/ch_watch watch ./demo/ch --dry-run
 go run ./cmd/ch_watch watch ./demo/ch --dry-run --dump
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --dump-tsv --dump-txt --dump-md
+go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump-tsv --no-duration --strip-totals
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --pipe-txt --pipe-md
 go run ./cmd/ch_watch run ./demo/ch/dev/tmp.sql --dump --pipe-md
 ./bin/ch_watch version
